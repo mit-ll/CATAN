@@ -1,3 +1,14 @@
+                          .g8"""bgd     db   MMP""MM""YMM   db      `7MN.   `7MF'
+                        .dP'     `M    ;MM:  P'   MM   `7  ;MM:       MMN.    M  
+                        dM'       `   ,V^MM.      MM      ,V^MM.      M YMb   M  
+                        MM           ,M  `MM      MM     ,M  `MM      M  `MN. M  
+                        MM.          AbmmmqMA     MM     AbmmmqMA     M   `MM.M  
+                        `Mb.     ,' A'     VML    MM    A'     VML    M     YMM  
+                          `"bmmmd'.AMA.   .AMMA..JMML..AMA.   .AMMA..JML.    YM  
+                                                        
+                        Communication Assistance Technology over Ad-Hoc Networks
+                         
+                         
 # Overview
 
 CATAN is an emergency communication system that can be deployed
@@ -42,17 +53,12 @@ humanitarian assistance and disaster response (HADR) community.
 
 
 Authors: Ben Bullough, Hongyi Hu, Chad Spensky
+
 Email: catan@ll.mit.edu
 
 Thanks to: Andrew Weinert, Charles Cimet, Mas Kocberber
 
 © 2015 Massachusetts Institute of Technology
-
-This work was sponsored by the Department of the Air Force under Air
-Force Contract #FA8721-05-C-0002.  Opinions, interpretations,
-conclusions and recommendations are those of the authors and are not
-necessarily endorsed by the United States Government.
-
 
 # Installation Instructions
 
@@ -89,3 +95,9 @@ necessarily endorsed by the United States Government.
 
 - [Link](http://blog.scphillips.com/2013/07/getting-a-python-script-to-run-in-the-background-as-a-service-on-boot/)
 
+# Disclaimer
+
+This work was sponsored by the Department of the Air Force under Air
+Force Contract #FA8721-05-C-0002.  Opinions, interpretations,
+conclusions and recommendations are those of the authors and are not
+necessarily endorsed by the United States Government.
