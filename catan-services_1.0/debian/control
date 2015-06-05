@@ -1,0 +1,12 @@
+Source: catan-services
+Maintainer: Chad Spensky <chad.spensky@ll.mit.edu>
+Section: python
+Priority: optional
+Build-Depends: python-all (>= 2.6.6-3), debhelper (>= 7)
+Standards-Version: 3.9.1
+
+Package: catan-services
+Architecture: all
+Depends: ${misc:Depends}, python (>= 2.7.1), python-dateutil, apache2, php5, libapache2-mod-php5, php5-dev, php5-sqlite, libapache2-mod-python, python-netifaces
+Description: This package contains all of the communication libraries for CATAN services
+

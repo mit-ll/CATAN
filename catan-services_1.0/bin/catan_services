@@ -1,0 +1,469 @@
+#!/usr/bin/env python
+"""
+    This is our unified CATAN communication server.  It will handle both RX and
+     TX.
+    
+    @author: Chad Spensky
+    @organization: MIT Lincoln Laboratory
+    © 2015 Massachusetts Institute of Technology
+ """
+# Native
+import sys
+import os
+import time
+import logging
+import struct
+import multiprocessing
+logger = logging.getLogger(__name__)
+import json
+
+# CATAN
+from catan.comms import TxServer, TxScheduler, RxServer, TX_QUEUE, ReTransmitServer, TxFragmentingScheduler, FragmentReassembler 
+from catan.comms_db import RetransmissionDatabase
+from catan.datalink import UDPTransmitter, UDPReceiver, AX25_KISS_Transmitter, AX25_KISS_Receiver
+from catan.services import NodeAnnouncementService
+from catan.db import DatabaseClient, DatabaseServer
+from catan.gps import GPSReceiver
+from catan.data import RetransmitReq
+from catan.metrics import log_person_update
+import catan.globals as G
+import catan.utils as utils
+
+
+node_message_log = {}
+MAX_LOG_SIZE = 50
+BANNER = """
+         _____              _______              _   _ 
+        / ____|     /\     |__   __|     /\     | \ | |
+       | |         /  \       | |       /  \    |  \| |
+       | |        / /\ \      | |      / /\ \   | . ` |
+       | |____   / ____ \     | |     / ____ \  | |\  |
+        \_____| /_/    \_\    |_|    /_/    \_\ |_| \_|
+    
+   Communications Assistance Technology over Ad-hoc Networks
+
+             Technology Office Challenge 2014
+                  MIT Lincoln Laboratory                                          
+"""
+
+
+
+
+def duplicate_message(node_message):
+    """
+        This function is used to filter duplicate messages that reach this node
+        using different routes.
+    """
+    logger.debug("Checking to see if message is a duplicate.")
+    # Extract our source and message id
+    source_id = node_message.source
+    message_id = node_message.id
+    
+    rtn = False
+    
+    # Is this message in our log?
+    if source_id in node_message_log:
+        if message_id in node_message_log[source_id]:
+            rtn = True
+        else:
+            node_message_log[source_id].append(message_id)
+    else:
+        # Create a list and append this message to it
+        node_message_log[source_id] = []
+        node_message_log[source_id].append(message_id)
+        
+    # Don't keep messages around forever
+    if node_message_log[source_id] > MAX_LOG_SIZE:
+        node_message_log[source_id].pop(0)
+        
+    return rtn
+
+
+# Setup our SIGTERM handler
+import signal
+SIGTERM_SENT = False
+def sigterm_handler(signum, frame):
+    """
+        SIGTERM handler to properly kill all multiprocesses
+        
+        Reference: http://www.tsheffler.com/blog/?p=377
+    """
+
+    global SIGTERM_SENT
+    if not SIGTERM_SENT:
+        SIGTERM_SENT = True
+        os.killpg(0, signal.SIGTERM)
+
+    sys.exit()
+    
+# Register our signal handler
+signal.signal(signal.SIGTERM, sigterm_handler)
+
+
+class CATANServices:
+    
+    def __init__(self, args):
+        """ Initialize our services with the appropriate arguments. """
+        
+        # Database server
+        self.db_server = DatabaseServer(args.node_id,
+                               db_filename=G.DB_FILENAME)
+        
+        # Local node parameters
+        self.my_node_id = args.node_id
+        self.my_node_id_mask = 1 << args.node_id
+        self.node_dict = multiprocessing.Manager().dict()
+        self.gateway_id_obj = multiprocessing.Manager().Value('I', -1)
+        
+        # Setup a database client
+        self.db_client = DatabaseClient()
+        
+        # Set our retranmission database
+        self.db_retransmission = RetransmissionDatabase()
+        msg_id_dict = self.db_retransmission.get_message_id_dict(self.my_node_id)
+        # This is a global value used for all messages
+        TxScheduler.MESSAGE_ID = msg_id_dict
+        
+        # Set our fragment reassembler
+        self.reassembler = FragmentReassembler()
+        
+        # Setup an interface to our gps receiver
+        gps_receiver = None
+        if args.gps_serial is not None:
+            gps_receiver = GPSReceiver(args.gps_serial)
+        
+        # Set our routing to ourselves to be all 0's in the bitmask
+        self.node_dict[self.my_node_id] = self.my_node_id_mask
+        socket_name = G.TX_DEFAULT_SOCK
+        
+        # Is this node it's own gateway?
+#     if args.is_gateway:
+#         self.gateway_id_obj.value = my_node_id
+
+        # Initialize our low-level transmitter
+        # Warning: Only the scheduler should ever call this directly
+        transmitter = None
+        if args.link_type.lower() == "udp":
+            transmitter = UDPTransmitter(broadcast_address=args.udp_broadcast)
+        elif args.link_type.lower() == "ax25":
+            #transmitter = AX25Transmitter()
+            transmitter = AX25_KISS_Transmitter(args.callsign,
+                                                port=args.radio_serial)
+        else:
+            logger.error("Ivalid link type given. (%s)"%args.link_type)
+            sys.exit(0)
+                   
+        # Setup our TX server (How local clients send messages)
+        self.tx_server = TxServer(socket_name)
+        
+        # Setupt our TX scheduler (Will prioritize and send messages)
+        if args.link_type.lower() == "udp":
+            self.tx_scheduler = TxScheduler(transmitter,
+                                       self.my_node_id, 
+                                       self.node_dict,
+                                       self.gateway_id_obj,
+                                       db_retransmission=self.db_retransmission)
+        else:
+            self.tx_scheduler = TxFragmentingScheduler(transmitter,
+                                     self.my_node_id, 
+                                     self.node_dict,
+                                     self.gateway_id_obj,
+                                     db_retransmission=self.db_retransmission)
+            
+        # Setup our RX Server
+        receiver = None
+        if args.link_type.lower() == "udp":
+            receiver = UDPReceiver()
+        else:
+            receiver = AX25_KISS_Receiver()
+        self.rx_server = RxServer(receiver, self.my_node_id)
+            
+        # Setup our re-transmission server
+        self.re_tx_server = ReTransmitServer(self.db_retransmission)
+
+        # Announcment Service (Periodically announce our presence)
+        self.announcement_server = NodeAnnouncementService(socket_name,
+                                            db_client=self.db_client,
+                                            db_retrans=self.db_retransmission,
+                                            gps_receiver=gps_receiver,
+                                            node_id=self.my_node_id)
+    
+    
+    def __del__(self):
+        """ 
+            Try to kill all of our threads properly
+        """
+        try:
+            self.db_server.terminate()
+            self.tx_server.terminate()
+            self.tx_scheduler.terminate()
+            self.rx_server.terminate()
+            self.re_tx_server.terminate()
+            
+            self.db_server.join()
+            self.tx_server.join()
+            self.tx_scheduler.join()
+            self.rx_server.join()
+            self.re_tx_server.join()
+        except:
+            pass
+        
+        
+    def _parse_retransmission(self,node_message):
+        """
+            Handle re-tranmission request packets
+        """
+        req_info = RetransmitReq(node_message.data)
+        if not (req_info and req_info.count and req_info.source and req_info.type):
+            logger.error("ERROR: Request Info = %s"%str(req_info))
+            
+        else:
+            logger.info("* Got a message retransmit request (count: %d, src: %d, type: %d)." \
+                % (req_info.count, req_info.source, req_info.type))
+            
+        # extract ids
+        ids = struct.unpack("%dI"%req_info.count,req_info.data)
+        for id in ids:
+            logger.info("* Retransmitting id %d"%id)
+            retx_msg = self.db_retransmission.get_sent_message(id,
+                                                          req_info.source,
+                                                          req_info.type)
+            if retx_msg is not None:
+                retx_msg.path = node_message.visited
+                retx_msg.visited = 0
+                retx_msg.destination = node_message.source
+                
+                TX_QUEUE.put(retx_msg)
+
+
+    def _parse_gateway(self, node_message):
+        """
+            Parse gateway announcements.  (Currently un-implemented)
+        """
+
+#             if args.is_gateway:
+#                 logger.info("This node is a gateway itself. Ignoring...")
+#                 continue
+        
+        # Extract info from message
+        source_id = node_message.source
+        remote_path = node_message.visited
+        gateway_id = self.gateway_id_obj.value
+        
+        # Update our path to this node
+        self.node_dict[source_id] = node_message.visited
+        
+        # Is this our first gateway, or one with less hops?
+        if gateway_id == -1 or utils.count_ones(self.node_dict[gateway_id]) < utils.count_ones(remote_path):
+            logger.info("* Gateway updated from %d to %d."%(
+                                                            gateway_id, 
+                                                            source_id))
+            self.gateway_id_obj.value = source_id
+        
+        
+    def run(self):
+        """
+            Run all of our services
+        """
+        
+        
+        print "+"+("-"*60)+"+"
+        print BANNER,
+        print "+"+("-"*60)+"+"
+        
+        logger.info("* Services started.")
+    
+        # Start DB server
+        self.db_server.start()
+        
+        # Start TX server and scheduler
+        self.tx_server.start()
+        self.tx_scheduler.start()
+        
+        # Start our RX server
+        self.rx_server.start()
+        
+        # Start our re-transmission server
+        self.re_tx_server.start()
+        
+        # Start our announcment service
+        self.announcement_server.start()
+        
+        
+        """
+            MAIN LOOP: Parse messages from RX
+        """
+        while True:
+            logger.debug("Waiting for message on RXServer...")
+                         
+            (node_message, addr) = self.rx_server.get_message()
+            if node_message is None:
+                logger.error("Got None instead of a NodeMessage")
+                continue
+            
+            """
+                Filtering
+            """
+            # Are we on the path of this message?
+            if node_message.path & self.my_node_id_mask == 0:
+                logger.info("Got a message that we aren't on the path of. Ignoring.")
+                continue
+            
+            # Check to see if this a duplicate of a message we have already seen
+            if duplicate_message(node_message):
+                logger.info("Got a duplicate message, ignoring. (Probably loopback)")
+                continue
+            
+            # Are we just a hop?
+            if node_message.destination != G.MESSAGE_BROADCAST_ADDRESS and node_message.destination != self.my_node_id:
+                logger.info("Got a message that we are just a hop for. Forwarding.")
+                # Just add it to the scheduler queue
+                TX_QUEUE.put(node_message)
+                continue
+            
+            """
+                Message handling
+            """
+            # Log every message that we receive
+            self.db_retransmission.store_received_message(node_message)
+            
+            # Is this message part of a multi-fragment message?
+            # try to get the complete message
+            node_message = self.reassembler.reassemble_or_add(node_message)
+            if node_message is None:
+                #this was just a fragment, need to wait for the rest of the message
+                continue  
+            
+            # Is this just a test message?
+            if node_message.type == G.MESSAGE_TYPE.TEST:
+                logger.info("Got a test message: %s"%node_message.data)
+            
+            # Is this a node announcment?
+            elif node_message.type == G.MESSAGE_TYPE.RT_NODE_ANNOUNCEMENT:
+                logger.info("* Got node announcement")
+                source_id = node_message.source
+                logger.info("** Node %d is at %s"%(source_id,addr))
+                
+                addr = (addr[0], G.UDP_DEFAULT_PORT)
+                
+                # Update our path dictionary
+                self.node_dict[source_id] = node_message.visited
+            
+            # Even better, is this a gateway announcement?
+            elif node_message.type == G.MESSAGE_TYPE.RT_GATEWAY_ANNOUNCEMENT:
+                logger.info("* Got Gateway announcement")
+                self._parse_gateway(node_message)
+            # DB Update?
+            elif node_message.type == G.MESSAGE_TYPE.DB_PERSON:
+                logger.info("* Got database update message from Node %d. (Person)" % 
+                            node_message.source)
+                logger.debug(node_message)
+                logger.debug("Data="+node_message.data)
+                self.db_client._send(node_message)
+                log_person_update(node_message)
+            
+            # GPS Update?
+            elif node_message.type == G.MESSAGE_TYPE.DB_GPS:
+                logger.info("* Got database update message. (GPS)")
+                self.db_client._send(node_message)
+                
+            # Re-transmit request
+            elif node_message.type == G.MESSAGE_TYPE.RETRAMISSION_REQ:
+                logger.info("* Got a re-transmission request.")
+                self._parse_retransmission(node_message)
+        
+        
+def catan_service(args):
+    """
+        This service will start our Tx Server and Databse Server, and then
+        continuously receive data over Rx and process it.
+    """
+    
+    
+
+            
+            
+
+if __name__ == "__main__":
+    
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--node_id", type=int, default=None,
+                        help="Assign this node a particular Node ID.")
+#     parser.add_argument("-G", "--is_gateway", action="store_true",
+#                          default=False, help="This is a gateway node.")
+    parser.add_argument("-d", "--debug", action="store_true", default=False,
+                        help="Enable debugging output.")
+    parser.add_argument("-s", "--sqlite_database", type=str, 
+                        default=G.DB_FILENAME, help="Name of sqlite database.")    
+    parser.add_argument("-g", "--gps_serial", type=str, default=None, 
+                        help="tty interface to GPS Receiver. (E.g. /dev/ttyUSB0)")
+    parser.add_argument("-l", "--link_type", type=str, default="udp", 
+                        help="Type of link for our backlink. (Options: udp, ax25)")
+    parser.add_argument("-a", "--udp_broadcast", 
+                        default=G.UDP_BROADCAST_ADDRESS, 
+                        help="UDP broadcast address to send packets out on.")
+    parser.add_argument("-r", "--radio_serial", type=str, default=None, 
+                        help="tty interface to radio. (E.g. /dev/ttyUSB0)")
+    parser.add_argument("-c", "--callsign", type=str, default=None, 
+                        help="this node's callsign and ssid (E.g. KI4SNH-1)")
+    
+    # Load from the command line or a config file?
+    if os.path.exists(G.CONFIG_FILENAME):
+        print "* Loading configuration settings from file. (%s)"%G.CONFIG_FILENAME
+        args = utils.import_config(G.CONFIG_FILENAME)
+    else:
+        print "* Parsing command line arguments"
+        args = parser.parse_args()
+    
+    # Are we debugging?
+    if args.debug:
+        print "* DEBUG Enabled."
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        try:
+            os.makedirs(os.path.dirname(G.LOG_FILENAME))
+        except:
+            pass
+        logging.basicConfig(filename=G.LOG_FILENAME,
+                             level=logging.INFO)
+        #logging.basicConfig()
+
+    # A node ID must be provided
+    if args.node_id is None:
+        logger.error("You must provide a Node ID.")
+        parser.print_help()
+        sys.exit(0)
+        
+    # Ensure we are within range
+    if args.node_id < 1 or args.node_id > 255:
+        logger.error("Node IDs must be between 1 and 255.  (0 is the broadcast address.)")
+        parser.print_help()
+        sys.exit(0)
+
+    # What backlink type are we using?
+    valid_links = ["udp","ax25"]
+    if args.link_type.lower() not in valid_links:
+        logger.error("You must provide a valid link type. Options are: %s"%valid_links)
+        parser.print_help()
+        sys.exit(0)
+        
+    # AX.25?
+    if args.link_type.lower() == "ax25" and (args.radio_serial is None or args.callsign is None):
+        logger.error("You must provide a serial device for the radio and a callsign unless using UDP")
+        parser.print_help()
+        sys.exit(0)
+
+    # UDP?
+    if args.link_type.lower() == "udp" and args.udp_broadcast is None:
+        logger.error("You must provide a broadcast address for UDP.")
+        parser.print_help()
+        sys.exit(0)
+            
+    # Initialize our serivces, and start them
+    services = CATANServices(args)
+    services.run()
+    
+    
+        
+    

@@ -1,0 +1,47 @@
+#!/bin/sh -e
+
+DIR=/opt/catan/
+
+echo -n "Would you like to install CATAN as a service that will auto-start? [y/n]"
+read like
+case "$like" in
+y*|Y*)
+	cd $DIR/scripts
+        ./install_service.sh
+;;
+esac
+
+# Set our web interface
+ ln -s $DIR/www /var/www/catan
+
+echo -n "Would you like Apache to have CATAN as its document root? [y/n]"
+read like
+case "$like" in
+y*|Y*)
+	if [ -e "/etc/apache2/sites-available/000-default.conf" ]; then
+
+		sed -i -r -e "s/DocumentRoot\s[^\s]+/DocumentRoot \/var\/www\/catan/" /etc/apache2/sites-available/000-default.conf 
+	elif [ -e "/etc/apache2/sites-available/default" ]; then
+		sed -i -r -e "s/DocumentRoot\s[^\s]+/DocumentRoot \/var\/www\/catan/" /etc/apache2/sites-available/default
+	else
+		echo "Could not find apache config file!"
+	fi
+		
+;;
+esac
+
+
+# Setup our cgi scripts
+ln -s $DIR/cgi-bin/catan_script.py /usr/lib/cgi-bin/catan_script.cgi
+chown -h `whoami` /usr/lib/cgi-bin/catan_script.cgi
+chown -h `whoami` $DIR/cgi-bin/catan_script.py
+
+ln -s $DIR/cgi-bin/getMapData.py /usr/lib/cgi-bin/getMapData.cgi
+chown -h `whoami` /usr/lib/cgi-bin/getMapData.cgi
+chown -h `whoami` $DIR/cgi-bin/getMapData.py
+
+
+# Ensure python and cgi are enabled in apache2
+a2enmod python 
+a2enmod cgi
+service apache2 restart

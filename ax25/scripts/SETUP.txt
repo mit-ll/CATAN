@@ -1,0 +1,81 @@
+
+1) Use apt-get (or similar) to install the following libraries:  
+libax25
+libax25-dev
+ax25-tools
+ax25-apps
+python-dev
+
+
+2) Add a line to /etc/ax25/axports for each radio that you will be using.  With two radios attached I have the following, but for a regular node you just need the first one. Change the callsign to your own callsign.
+
+# /etc/ax25/axports
+#
+# The format of this file is:
+# name  callsign        speed   paclen  window   description
+radio1   KI4SNH-1        9600    255     2       144.400 MHz (1200 bps)
+radio2  KI4SNH-2        9600    255     2       144.400 MHz (1200 bps)
+
+
+3) Add an entry to the /etc/ax25/ax25d.conf file to indicate the executable that will handle incoming AX25 connections (only applies to connection oriented comms).  You can omit this step if not using the connection oriented comms.  Below is what I have currently.  After the executable path, the next entry is the name the executable will have in the process list, the %S argument passes the address of the calling station and the last argument is path to a log file.  (Running this process as root is not the best but that's what I was doing to get it working.)  
+
+# /etc/ax25/ax25d.conf
+#
+# ax25d Configuration File.
+# AX.25 Ports begin with a '['.
+#
+# <peer> Win T1  T2  T3  idl N2 <mode> <uid> <exec> <argv[0]>[<args....>]
+#
+[KI4SNH-1 via radio1]
+NOCALL    * * * * * *  L
+default   * * * * * *  -        root /home/ben/catan/ax25/src/handler_ax25d handler_ax25d %S /home/ben/catan/ax25/server_log_ax25d.txt
+
+
+3a) (Optional) Comment out the configuration lines in /etc/ax25/nrports and /etc/ax25/rsports to avoid error messages about these not being active
+
+
+4) Make sure PySerial is installed.  Check that you can import the package:
+>>>import serial
+if not install with apt-get python-serial
+
+
+5) Connect the Kenwood TH-D72 Radio via USB and set it to packet mode by pressing the TNC button twice.  It should display the word "PACKET" in the upper left corner of the LCD display.
+
+
+6) Tune to the correct frequency for the network.  (See Kenwood TH-D72 user manuel for instruction on tuning.)  We have been using 144.400 MHz but this could change.
+
+
+7) Determine the name of the serial device associated with the radio.  In Ubuntu it is /dev/ttyUSB0 for the first device (no need to install drivers).  In other OSes it might be named differently and it may be necessary to install a virtual serial driver.  For Mac I used the SILICON Labs USB to UART Bridge VCP driver available at (http://www.silabs.com/products/mcu/Pages/USBtoUARTBridgeVCPDrivers.aspx).  It shows up as /dev/cu.SLAB_USBtoUART 
+
+
+8) Run the script radio_setup.sh as root to setup the necssary network interfaces providing the previously determined serial device as an argument
+$sudo ./radio_setup.sh /dev/ttyUSB0
+
+
+9) If things are working correctly, you should see "ax0" as an interface when running ifconfig.  You can also run "axparms -route list" which should produce this output:
+
+callsign  dev  mode digipeaters
+default   ax0     *
+
+
+10) You can monitor AX25 connections by running: 
+$watch -d "netstat --ax25"
+
+If running ax25d, you should see one socket in the listening state:
+
+Active AX.25 sockets
+Dest       Source     Device  State        Vr/Vs    Send-Q  Recv-Q
+*          KI4SNH-1   ax0     LISTENING    000/000  0       0
+
+
+11) You can test sending a AX25 UI packet with the send_ax25_dgram command line utility in ax25/src as follows:
+$./send_ax25_dgram radio1 KI4SNH-1 "Hello"
+
+You should see the lights on the top of the radio breifly illuminate to indicated that data is being transmitted.
+
+© 2015 Massachusetts Institute of Technology
+
+
+
+
+

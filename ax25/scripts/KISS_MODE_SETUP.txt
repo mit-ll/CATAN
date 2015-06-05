@@ -1,0 +1,19 @@
+
+1) Make sure PySerial is installed.  Check that you can import the package:
+>>>import serial
+if not install with apt-get python-serial
+
+2) Connect the Kenwood TH-D72 Radio via USB and set it to packet mode by pressing the TNC button twice.  It should display the word "PACKET" in the upper left corner of the LCD display.
+
+3) Tune to the correct frequency for the network.  (See Kenwood TH-D72 user manuel for instruction on tuning.)  We have been using 144.400 MHz but this could change.
+
+4) Determine the name of the serial device associated with the radio.  In Ubuntu it is /dev/ttyUSB0 for the first device (no need to install drivers).  In other OSes it might be named differently and it may be necessary to install a virtual serial driver.  For Mac I used the SILICON Labs USB to UART Bridge VCP driver available at (http://www.silabs.com/products/mcu/Pages/USBtoUARTBridgeVCPDrivers.aspx).  It shows up as /dev/cu.SLAB_USBtoUART 
+
+5) Run the script kiss_mode_on.py as root to setup the necssary network interfaces optionally providing the previously determined serial device as an argument (/dev/ttyUSB0 is the default)
+$sudo python kiss_mode_setup_on [serial_device]
+
+If things are working correctly, you should see:
+Kiss mode set for /dev/ttyUSB0   (or what ever device you specified)
+
+© 2015 Massachusetts Institute of Technology
+
