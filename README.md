@@ -58,8 +58,6 @@ Email: catan@ll.mit.edu
 
 Thanks to: Andrew Weinert, Charles Cimet, Mas Kocberber
 
-© 2015 Massachusetts Institute of Technology
-
 # Installation Instructions
 
 1. Setup your raspberry pi with Raspbian and get it on the internet. [Guide](http://www.raspberrypi.org/documentation/installation/installing-images/)
@@ -96,8 +94,11 @@ Thanks to: Andrew Weinert, Charles Cimet, Mas Kocberber
 - [Link](http://blog.scphillips.com/2013/07/getting-a-python-script-to-run-in-the-background-as-a-service-on-boot/)
 
 # Disclaimer
-
+<p align="center">
 This work was sponsored by the Department of the Air Force under Air
 Force Contract #FA8721-05-C-0002.  Opinions, interpretations,
 conclusions and recommendations are those of the authors and are not
 necessarily endorsed by the United States Government.
+<br>
+© 2015 Massachusetts Institute of Technology 
+</p>
