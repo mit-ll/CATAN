@@ -1,9 +1,7 @@
 """
     These are some basic utils utilized throughout our codebase.
     
-    @author: Chad Spensky
-    @organization: MIT Lincoln Laboratory
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 def linux_set_time(time_tuple):

@@ -2,9 +2,7 @@
     This file contains all the CATAN gateway operations 
       for uploading data to Google Person Finder
     
-    @author: Ben Bullough
-    @organization: MIT Lincoln Laboratory
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 import xml.etree.ElementTree as ET
@@ -15,7 +13,7 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 # CATAN
-from db import CatanDatabase
+from catan.db.person import CatanDatabasePerson
 import catan.globals as G
 
 
@@ -42,7 +40,6 @@ class PersonFinderUploader:
         self.url = url
         self.delay = delay
 
-                
     def make_person_element(self, person_dict):
         """
             Create a PFIF Person element object from a dictionary
@@ -92,39 +89,39 @@ class PersonFinderUploader:
     def make_note_element(self, note_dict):
         """
             Create a PFIF Note element object from a dictionary
-        """               
+        """
         note = ET.Element("pfif:note")
-        
+
         #note_record_id
         field = ET.SubElement(note, "pfif:note_record_id")
         field.text = self.record_prefix+str(note_dict['person_id'])+"." \
                                   +str(note_dict['origin_node_id'])+"." \
                                   +str(note_dict['submission_id'])
-                                  
+
         #person_record_id
         field = ET.SubElement(note, "pfif:person_record_id")
         field.text = self.record_prefix+note_dict['person_id']
-             
+
         #source_date
-        time_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", 
+        time_str = time.strftime("%Y-%m-%dT%H:%M:%SZ",
                                  time.gmtime(note_dict['timestamp']))
         field = ET.SubElement(note, "pfif:source_date")
         field.text = str(time_str)
-                
+
         #author_name
         field = ET.SubElement(note, "pfif:author_name")
         if note_dict['sub_name_given'] and note_dict['sub_name_family']:
-            field.text = " ".join([note_dict['sub_name_given'], 
+            field.text = " ".join([note_dict['sub_name_given'],
                                    note_dict['sub_name_family']])
         else:
             field.text = "Unknown"
-        
+
         #text
         field = ET.SubElement(note, "pfif:text")
-        field.text = note_dict['person_message']        
-        
+        field.text = note_dict['person_message']
+
         #Optional
-        #author_email       
+        #author_email
         #author_phone
         #status  (need correct options)
         #email_of_found_person
@@ -133,26 +130,26 @@ class PersonFinderUploader:
         #phone_of_found_person
         #other fields
         mapping = {}
-                                           
+
         for key, value in mapping.items():
             if key in note_dict and note_dict[key]:
                 field = ET.SubElement(note, value)
-                field.text = note_dict[key]                          
-                
+                field.text = note_dict[key]
+
         return note
-               
+
     def generate_tree(self, since=0):
         """
             Creates a hierarchy of elements representing the data to upload
-        """    
-        root = ET.Element("pfif:pfif", 
+        """
+        root = ET.Element("pfif:pfif",
                           {'xmlns:pfif':'http://zesty.ca/pfif/1.4'})
-        
-        cdb = CatanDatabase(node_id=1, filename=G.DB_FILENAME)
+
+        cdb = CatanDatabasePerson()
         if not cdb or cdb.CONN is None:
             LOGGER.error("Could not connect to database")
             return None
-        
+
         person_ids = cdb.get_person_ids()
 
         for person_id in person_ids:
@@ -160,13 +157,13 @@ class PersonFinderUploader:
             if person_dict['timestamp'] > since:
                 person_elem = self.make_person_element(person_dict)
                 root.append(person_elem)
- 
+
         for person_id in person_ids:
             messages_list = cdb.get_messages_by_person(person_id)
             for msg_dict in messages_list:
                 if msg_dict['timestamp'] > since:
                     note_elem = self.make_note_element(msg_dict)
-                    root.append(note_elem)       
+                    root.append(note_elem)
 
         return root
 
@@ -175,12 +172,12 @@ class PersonFinderUploader:
             Prints the full name for each Person record to upload to stdout
         """
         tree = self.generate_tree(since)
-                
+
         if tree is not None:
             for root in tree.iter("pfif:pfif"):
                 for person in root.iter("pfif:person"):
                     for item in person.iter("pfif:full_name"):
-                        print item.text                
+                        print item.text
     
     def send(self, xml_str):
         """
@@ -234,6 +231,4 @@ class PersonFinderUploader:
             else:
                 LOGGER.info("  Update failed")
             time.sleep(self.delay)
-
-    
 

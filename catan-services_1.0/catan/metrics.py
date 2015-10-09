@@ -1,8 +1,7 @@
 """
     This file contains code to measure the performance of the system 
     
-    @author: Ben Bullough    
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 # Native

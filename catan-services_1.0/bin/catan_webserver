@@ -1,0 +1,688 @@
+#!/usr/bin/env python
+"""
+    Simple web server using Flask to host our web services.
+
+    (c) 2015 Massachusetts Institute of Technology
+"""
+# Native
+import datetime
+import uuid
+import base64
+from functools import wraps
+import json
+import logging
+logger = logging.getLogger(__name__)
+
+# Flask
+from flask import render_template
+from flask import make_response
+from flask import Flask
+from flask import request
+from flask import session
+
+# CATAN
+import catan.utils as utils
+import catan.globals as G
+from catan.db.person import CatanDatabasePerson
+from catan.db.person import CatanDatabasePersonObject
+from catan.db.services import CatanDatabaseServiceObject
+from catan.db.services import CatanDatabaseService
+from catan.db.announcements import CatanDatabaseAnnouncement
+from catan.db import DatabaseClient
+from catan.db.gps import CatanDatabaseGPS
+from catan.comms import TxClient
+
+
+catan_config = utils.import_config(G.CONFIG_FILENAME)
+my_node_id = catan_config.node_id
+
+# Initialize flask app and secret key
+app = Flask(__name__,
+            template_folder='/opt/catan/webserver/templates',
+            static_folder='/opt/catan/webserver/static')
+app.secret_key = '\xb2\xfb\xf0l\x10\x03]0>_\xc0\xd3\xcc\xf1uo\xa5\xa4\xc6\xf2\xb2,9\xf6'
+
+
+
+class TextEnglish:
+    menu = {
+        "announcements": "Announcements",
+        "find_person": "Find Person",
+        "request_aid": "Request Aid",
+        "volunteer": "Volunteer"
+    }
+
+
+menu_items = ["announcements", "find_person", "request_aid", "volunteer"]
+
+document_text = TextEnglish()
+
+"""
+    Define our decorators
+"""
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Did they already identify themselves?
+        if 'identified' not in session or not session['identified']:
+            resp = make_response(render_template('login.html',
+                                             current_link='home',
+                                             menu_items=menu_items,
+                                             text=document_text))
+            return resp
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def redirect(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Did they already identify themselves?
+        host = request.host.split(":")[0]
+
+        if host != "catan" and host != "localhost":
+            return '<meta http-equiv="refresh" content="0; url=http://catan/" />'
+        return f(*args, **kwargs)
+    return decorated_function
+
+def update_db_person(req):
+
+    form = request.form
+
+    # Create our clients
+    db_client = DatabaseClient()
+    tx_client = TxClient()
+
+    # Retrieve our context
+    if 'pid' in session:
+        submitter_id = session['pid']
+    else:
+        submitter_id = None
+
+    cookie_value = request.cookies.get('CATAN')
+
+    if submitter_id is None or cookie_value is None:
+        logger.debug("Got a DB update request without a cookie user "
+                     "identified.")
+        # return False
+
+    # Initialize our database object
+    db_obj = CatanDatabasePersonObject()
+
+    # What person are they updating?
+    if 'person_id' in form:
+        db_obj.person_id = form["person_id"]
+    else:
+        logger.debug("Got update without a person_id.  (New person?)")
+
+    # This user is creating their own account?
+    if submitter_id == db_obj.person_id or 'user_is_submitter' in form:
+        db_obj.user_is_submitter = True
+    else:
+        db_obj.user_is_submitter = False
+
+    # Populate our submitter info
+    db_obj.submitter_info.cookie = cookie_value
+    db_obj.submitter_info.submitter_id = submitter_id
+
+    # Populate all of our values in our object
+    for db in db_obj.get_databases():
+        for field in db.get_fields():
+            if field in form and form[field] != "":
+                setattr(db, field, form[field])
+
+    # Get our picture info
+    if "picture_file" in form:
+        picture = form['picture_file']
+        if picture.filename:
+            # Read in our picture data
+            picture_data = base64.b64encode(picture.file.read())
+            db_obj.data_picture.picture_data = picture_data
+
+    # Any GPS info?
+    if "submitter_gps" in form:
+        gps_info = form["submitter_gps"]
+        if gps_info is not None and gps_info != "":
+            (lat, lon, acc) = gps_info.split(",")
+            db_obj.submitter_info.gps_accuracy = acc
+            db_obj.submitter_info.gps_latitude = lat
+            db_obj.submitter_info.gps_longitude = lon
+    if db_obj.submitter_info.gps_latitude is None:
+        db_gps = CatanDatabaseGPS()
+        node_gps = db_gps.get_last_gps(my_node_id)
+        if node_gps is not None:
+            db_obj.submitter_info.gps_latitude = node_gps['gps_latitude']
+            db_obj.submitter_info.gps_longitude = node_gps['gps_longitude']
+
+    # First updated our local database, this returns the entry with updated
+    # submission ids etc. that are auto-generated
+    rtn_data = db_client.send(G.MESSAGE_TYPE.DB_PERSON, data=repr(db_obj))
+
+    # If the database updated successfully, share this entry with other CATAN
+    #  nodes
+    if rtn_data != 0:
+        db_obj_updated = CatanDatabasePersonObject(rtn_data)
+        rtn = tx_client.send(G.MESSAGE_TYPE.DB_PERSON, repr(db_obj_updated))
+        logger.debug("Updated database and shared: %s" % db_obj_updated)
+
+        # Return our updated object
+        return db_obj_updated
+    else:
+        logger.error("Could not update database with: %s" % db_obj)
+        return False
+
+
+def update_db_service(req):
+    """
+        Update the database with request for aid status or request.
+
+    :param req:
+    :return:
+    """
+    form = request.form
+
+    # Create our clients
+    db_client = DatabaseClient()
+    tx_client = TxClient()
+
+    # Create our clients
+    db_client = DatabaseClient()
+    tx_client = TxClient()
+
+    # Retrieve our context
+    submitter_id = session['pid']
+    cookie_value = request.cookies.get('CATAN')
+
+    if submitter_id is None or cookie_value is None:
+        logger.debug("Got a DB update request without a cookie user "
+                     "identified.")
+        # return False
+
+    # Initialize our database object
+    db_obj = CatanDatabaseServiceObject()
+
+    # Was a type defined?
+    if "service_type" in form:
+        db_obj.service.service_type = form["service_type"]
+
+    # Was a subtype defined?
+    if "service_subtype" in form:
+        db_obj.service.service_subtype = form["service_subtype"]
+
+    # Service id?
+    if "service_id" in form:
+        db_obj.service_id = form["service_id"]
+
+    # Is the status being updated?
+    if "service_status" in form:
+        db_obj.service_status.service_status = form["service_status"]
+    if "service_comments" in form:
+        db_obj.service_status.service_comments = form["service_comments"]
+
+    # What person are they updating?
+    if 'person_id' in form:
+        db_obj.person_id = form["person_id"]
+    else:
+        db_obj.person_id = submitter_id
+
+    # Populate our submitter info
+    db_obj.submitter_info.cookie = cookie_value
+    db_obj.submitter_info.submitter_id = submitter_id
+    db_obj.submitter_id = submitter_id
+    # Any GPS info?
+    if "submitter_gps" in form:
+        gps_info = form["submitter_gps"]
+        if gps_info is not None and gps_info != "":
+            (lat, lon, acc) = gps_info.split(",")
+            db_obj.submitter_info.gps_accuracy = acc
+            db_obj.submitter_info.gps_latitude = lat
+            db_obj.submitter_info.gps_longitude = lon
+    if db_obj.submitter_info.gps_latitude is None:
+        db_gps = CatanDatabaseGPS()
+        node_gps = db_gps.get_last_gps(my_node_id)
+        if node_gps is not None:
+            db_obj.submitter_info.gps_latitude = node_gps['gps_latitude']
+            db_obj.submitter_info.gps_longitude = node_gps['gps_longitude']
+
+    # First updated our local database, this returns the entry with updated
+    # submission ids etc. that are auto-generated
+    rtn_data = db_client.send(G.MESSAGE_TYPE.DB_SERVICE, repr(db_obj))
+
+    # If the database updated successfully, share this entry with other CATAN
+    #  nodes
+    if rtn_data != 0:
+        db_obj_updated = CatanDatabaseServiceObject(data=rtn_data)
+        rtn = tx_client.send(G.MESSAGE_TYPE.DB_PERSON, repr(db_obj_updated))
+        logger.debug("Updated database and shared: %s" % db_obj_updated)
+
+        # Return our updated object
+        return "1"
+    else:
+        logger.error("Could not update database with: %s" % db_obj)
+        return "0"
+
+    return "0"
+
+
+@app.route('/index.html')
+def index():
+    resp = make_response(render_template('index.html',
+                                         menu_items=menu_items,
+                                         text=document_text))
+    return resp
+
+@app.route('/')
+@app.route('/home')
+@redirect
+@login_required
+def home():
+
+    return profile(session['pid'], current_link="home")
+
+@app.route('/identify/<pid>', methods=['POST'])
+def identify(pid):
+
+    # Connect to our db
+    db_person = CatanDatabasePerson()
+
+    # Get our cookie value
+    cookie_value = request.cookies.get('CATAN')
+    if cookie_value is None or cookie_value == '':
+        cookie_value = str(uuid.uuid1())
+
+    session['cookie_value'] = cookie_value
+
+    session['pid'] = pid
+    session['identified'] = True
+
+    # Get person info from database
+    session['name'] = db_person.get_person_name(pid)
+
+    # Just reroute back to home page
+    if request.referrer is not None:
+        resp = make_response('<META HTTP-EQUIV=REFRESH CONTENT="0; URL=%s">'
+                         % request.referrer)
+    else:
+        resp = make_response('<META HTTP-EQUIV=REFRESH CONTENT="0; URL=/">')
+
+    resp.set_cookie('CATAN', cookie_value)
+
+    # Update our database with this submitters info and share with the network
+    update_db_person(request)
+
+    return resp
+
+@app.route('/logout', methods=['POST'])
+def logout():
+
+    # Unset our session variables
+    session['cookie_value'] = ""
+    session['pid'] = ""
+    session['identified'] = False
+
+    # Just reroute back to home page
+    if request.referrer is not None:
+        resp = make_response('<META HTTP-EQUIV=REFRESH CONTENT="0; URL=%s">'
+                             % request.referrer)
+    else:
+        resp = make_response('<META HTTP-EQUIV=REFRESH CONTENT="0; URL=/">')
+
+    # Unset our cookie
+    resp.set_cookie('CATAN', "")
+
+    return resp
+
+@app.route('/update_person', methods=['POST'])
+def update_person():
+
+    # Update our database with this submitters info and share with the network
+    if update_db_person(request):
+        return "1"
+    else:
+        return "0"
+
+@app.route('/add_person', methods=['POST'])
+def add_person():
+
+    db_person = CatanDatabasePerson()
+    # Update our database with this submitters info and share with the network
+    db_update = update_db_person(request)
+    if db_update != False:
+
+        if db_update.user_is_submitter:
+            # Get our cookie value
+            cookie_value = request.cookies.get('CATAN')
+            if cookie_value is None or cookie_value == '':
+                cookie_value = str(uuid.uuid1())
+
+            # set our session values
+            session['cookie_value'] = cookie_value
+            session['pid'] = db_update.person_id
+            session['identified'] = True
+            # Get person info from database
+            session['name'] = db_person.get_person_name(db_update.person_id)
+
+        return db_update.person_id
+
+    else:
+        return "0"
+
+
+@app.route('/profile/<pid>')
+def profile(pid, current_link=None):
+
+    # Connect to our database
+    db_person = CatanDatabasePerson()
+
+    # Extract relevant information from the database
+    person_info = db_person.get_person_info(pid)
+    pictures = db_person.get_pictures(pid)
+    messages = db_person.get_messages_by_person(pid)
+
+    # These dicts are used for displaying the proper text for each field
+    contact_items = [("Street name:", "street"),
+                     ("Neighborhood:", "neighborhood"),
+                     ("City:", "city"),
+                     ("Province or state:", "state"),
+                     ("Postal or zip code:", "zip"),
+                     ("Country:", "country"),
+                     ("Phone:", "phone"),
+                     ("E-mail:", "email")]
+
+    message_status = {'information_sought': "Seeking information",
+                     'is_note_author': "Self reported",
+                     'believed_alive': "Believed to be alive",
+                     'believed_missing': "Believed to be missing",
+                      None: "Unknown"}
+
+    # Let's update our status and timestamp text to something human readable
+    for idx, _ in enumerate(messages):
+        messages[idx]['status'] = message_status[messages[idx]['status']]
+        ts = messages[idx]['timestamp']
+        dt = datetime.datetime.fromtimestamp(int(ts)).strftime('%B %d, %Y, '
+                                                                 '%H:%M:%S %z')
+        messages[idx]['timestamp'] = dt
+
+    # Create our response
+    resp = make_response(render_template('profile.html',
+                                         current_link=current_link,
+                                         menu_items=menu_items,
+                                         text=document_text,
+                                         pid=pid,
+                                         person_info=person_info,
+                                         contact_items=contact_items,
+                                         pictures=pictures,
+                                         messages=messages,
+                                         message_status=message_status,
+                                         session=session))
+    return resp
+
+@app.route('/new_person', methods=['GET', 'POST'])
+def new_person():
+
+     return make_response(render_template('new_person.html',
+                                         menu_items=menu_items,
+                                         text=document_text,
+                                         form=request.form))
+
+@app.route('/find_person', methods=['GET', 'POST'])
+def find_person():
+
+    # Is this a post?
+    if request.method == 'POST':
+        name_given = request.form['name_given']
+        name_family = request.form['name_family']
+
+        db_person = CatanDatabasePerson()
+
+        results = db_person.get_search_results(name_family, name_given)
+
+        return make_response(render_template('find_person_results.html',
+                                         menu_items=menu_items,
+                                         text=document_text,
+                                         name_given=name_given,
+                                         name_family=name_family,
+                                         results=results))
+
+    else:
+        # Just present search dialog
+        resp = make_response(render_template('find_person.html',
+                                         current_link='find_person',
+                                         menu_items=menu_items,
+                                         text=document_text))
+    return resp
+
+@app.route('/all_users', methods=['GET'])
+def all_users():
+
+    db_person = CatanDatabasePerson()
+
+    results = db_person.get_search_results('', '')
+    result_list = []
+
+    for r in results:
+        result_list.append(dict(r))
+
+    return json.dumps(result_list)
+
+@app.route('/messages/', methods=['GET'])
+def get_messages():
+
+    import time
+
+    pid = request.args.get('pid')
+    ts = request.args.get('ts')
+    if ts is not None:
+        ts_filter = float(ts)
+    else:
+        ts_filter = None
+
+    # Get announcements
+    db_announcements = CatanDatabaseAnnouncement()
+    msgs_global = db_announcements.get_announcements()
+
+    # Filter old messsages
+    filter_indices = []
+
+    for idx, _ in enumerate(msgs_global):
+        ts = msgs_global[idx]['timestamp']
+        # Filter this entry?
+        if ts < ts_filter:
+            filter_indices.append(idx)
+
+    for idx in sorted(filter_indices, reverse=True):
+        del msgs_global[idx]
+
+    # Get user messages
+    msgs_personal = []
+    if pid is not None:
+        # Connect to our database
+        db_person = CatanDatabasePerson()
+
+        # Get messages
+        msgs_personal = db_person.get_messages_by_person(pid)
+
+        message_status = {'information_sought': "Seeking information",
+                         'is_note_author': "Self reported",
+                         'believed_alive': "Believed to be alive",
+                         'believed_missing': "Believed to be missing",
+                          None: "Unknown"}
+
+        # Let's update our status and timestamp text to something human readable
+        filter_indices = []
+        for idx, _ in enumerate(msgs_personal):
+            msgs_personal[idx]['status'] = message_status[msgs_personal[idx]['status']]
+            ts = msgs_personal[idx]['timestamp']
+
+            # Filter this entry?
+            if ts < ts_filter:
+                filter_indices.append(idx)
+                continue
+
+            dt = datetime.datetime.fromtimestamp(int(ts)).strftime('%B %d, %Y, '
+                                                                     '%H:%M:%S %z')
+            msgs_personal[idx]['timestamp_text'] = dt
+
+            # Clean up useless data
+            del msgs_personal[idx]['submission_id']
+            del msgs_personal[idx]['submitter_id']
+            del msgs_personal[idx]['origin_node_id']
+            del msgs_personal[idx]['gps_latitude']
+            del msgs_personal[idx]['gps_accuracy']
+            del msgs_personal[idx]['person_id']
+            del msgs_personal[idx]['imsi']
+            del msgs_personal[idx]['gps_longitude']
+
+        for idx in sorted(filter_indices, reverse=True):
+            del msgs_personal[idx]
+
+    rtn_dict = {"global": msgs_global,
+                "personal": msgs_personal,
+                "timestamp": time.time()}
+
+    print "Sending: ", rtn_dict
+
+    return json.dumps(rtn_dict)
+
+
+
+@app.route('/service_submit', methods=['POST'])
+def service_submit():
+    """
+        Submits a service (request/volunteer) into the database
+    :return:
+    """
+    db_result = update_db_service(request)
+
+    return db_result
+
+
+
+@app.route('/request_aid')
+@login_required
+def request_aid():
+
+    request_links = [('Water', 'water', G.SERVICE_REQUEST_TYPE.WATER),
+                     ('Food', 'food', G.SERVICE_REQUEST_TYPE.FOOD),
+                     ('Shelter', 'shelter', G.SERVICE_REQUEST_TYPE.SHELTER),
+                     ('Cleanup', 'cleanup', G.SERVICE_REQUEST_TYPE.CLEANUP),
+                     ('Fuel', 'fuel', G.SERVICE_REQUEST_TYPE.FUEL)
+                     # ('Management of deceased', 'deceased',
+                     #  G.REQUEST_TYPE.DECEASED)
+                     ]
+
+    db_service = CatanDatabaseService()
+
+    active_requests = db_service.get_services(session['pid'],
+                                              G.SERVICE_TYPE.REQUEST)
+
+    resp = make_response(render_template('request_aid.html',
+                                         current_link='request_aid',
+                                         menu_items=menu_items,
+                                         text=document_text,
+                                         request_links=request_links,
+                                         active_requests=active_requests,
+                                         service_type=G.SERVICE_TYPE.REQUEST))
+
+    return resp
+
+@app.route('/volunteer')
+@login_required
+def volunteer():
+
+    volunteer_links = [('Translator', G.SERVICE_VOLUNTEER_TYPE.TRANSLATOR),
+                     ('Local Guide', G.SERVICE_VOLUNTEER_TYPE.GUIDE),
+                     ('Laborer', G.SERVICE_VOLUNTEER_TYPE.LABORER),
+                     ('Counseling', G.SERVICE_VOLUNTEER_TYPE.COUNSELER),
+                     ('Search and Rescue', G.SERVICE_VOLUNTEER_TYPE.RESCUER),
+                     ('Transportation', G.SERVICE_VOLUNTEER_TYPE.TRANSPORTATION)]
+
+    db_service = CatanDatabaseService()
+
+    active_requests = db_service.get_services(session['pid'],
+                                              G.SERVICE_TYPE.VOLUNTEER)
+
+    resp = make_response(render_template('volunteer.html',
+                                         current_link='volunteer',
+                                         menu_items=menu_items,
+                                         text=document_text,
+                                         volunteer_links=volunteer_links,
+                                         active_requests=active_requests,
+                                         service_type=G.SERVICE_TYPE.VOLUNTEER))
+
+    return resp
+
+@app.route('/announcements')
+def announcements():
+
+    # Get announcements
+    db_announcements = CatanDatabaseAnnouncement()
+    announcements = db_announcements.get_announcements()
+
+    # Get user messages
+    messages = []
+    if 'identified' in session:
+        # Connect to our database
+        db_person = CatanDatabasePerson()
+
+        # Get messages
+        messages = db_person.get_messages_by_person(session['pid'])
+
+        message_status = {'information_sought': "Seeking information",
+                         'is_note_author': "Self reported",
+                         'believed_alive': "Believed to be alive",
+                         'believed_missing': "Believed to be missing",
+                          None: "Unknown"}
+
+        # Let's update our status and timestamp text to something human readable
+        for idx, _ in enumerate(messages):
+            messages[idx]['status'] = message_status[messages[idx]['status']]
+            ts = messages[idx]['timestamp']
+            dt = datetime.datetime.fromtimestamp(int(ts)).strftime('%B %d, %Y, '
+                                                                     '%H:%M:%S %z')
+            messages[idx]['timestamp'] = dt
+
+    resp = make_response(render_template('announcements.html',
+                                         current_link='announcements',
+                                         menu_items=menu_items,
+                                         text=document_text,
+                                         session=session,
+                                         messages=messages,
+                                         announcements=announcements))
+
+    return resp
+
+
+@app.errorhandler(404)
+@redirect
+def page_note_found(e):
+    return "Page not found."
+
+
+
+
+if __name__ == '__main__':
+    # commandline args
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--debug", default=False,
+                        action='store_true', help="Enable debug output.")
+
+    # parse args
+    args = parser.parse_args()
+
+    # See if we are debugging or production
+    port = 80
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+        port = 8000
+    else:
+        logging.basicConfig(level=logging.INFO, filename=G.LOG_WEBSERVER)
+
+    app.run(host='0.0.0.0',
+            use_debugger=args.debug,
+            use_reloader=True,
+            port=port)
+
+    logger.info("CATAN web server started on port %d." % port)

@@ -2,9 +2,7 @@
     This file contains all of the actuall low-level datalink interfaces for 
     CATAN
     
-    @author: Chad Spensky
-    @organization: MIT Lincoln Laboratory
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 # Native
@@ -95,10 +93,9 @@ class UDPTransmitter(LinkTransmitter):
         """
         # Open socket, send data
         try:
-#             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-            sock = socket.socket(socket.AF_INET, 
-                                               socket.SOCK_RAW, 
-                                                socket.IPPROTO_UDP) # UDP
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+            
+            # Permit broadcast
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             
             # Bind to our mesh interface
@@ -110,12 +107,8 @@ class UDPTransmitter(LinkTransmitter):
                 logger.warn("Your kernel doesn't support binding to an " \
                             "interface.  Your packets may be going out on the" \
                             " wrong interface")
-
-            udp_packet = UDPHeader(`node_message`)
-            udp_packet.port_dst = self.port
-            udp_packet.length = len(udp_packet)
             
-            sock.sendto(`udp_packet`, (self.broadcast_address, self.port))
+            sock.sendto(`node_message`, (self.broadcast_address, self.port))
             
             logger.debug("Sent message to '%s'."%self.broadcast_address)
                 
@@ -136,7 +129,7 @@ class UDPTransmitter(LinkTransmitter):
     
 class UDPReceiver(LinkReceiver):
     
-    def __init__(self,port=G.UDP_DEFAULT_PORT,iface=G.UDP_DEFAULT_INTERFACE):
+    def __init__(self,port=G.UDP_DEFAULT_PORT, iface=G.UDP_DEFAULT_INTERFACE):
         """
             Initialize UDP listener
         """
@@ -145,8 +138,7 @@ class UDPReceiver(LinkReceiver):
         
         self.SOCK = None
         self._connect()
-        
-        
+
     def _connect(self):
         """
             Bind our UDP server
@@ -154,12 +146,12 @@ class UDPReceiver(LinkReceiver):
         try:
             #self.SOCK = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
             self.SOCK = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP) # UDP
-#             self.SOCK.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self.iface)
-            self.SOCK.bind( ("0.0.0.0",self.port) )
+            # self.SOCK.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self.iface)
+            self.SOCK.bind(("0.0.0.0", self.port))
         except:
-            logger.error("Couldn't listen on port %d"%self.port)
+            logger.error("Couldn't listen on port %d" % self.port)
             self.SOCK = None
-    
+            raise Exception("Could not bind to ip/port for listening.")
     
     def _recv(self):
         """

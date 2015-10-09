@@ -1,5 +1,0 @@
-This directory contains our server-side implementation of the CATAN web interface.
-
-setup.sh will install and configure the webserver.  Then navigate to http://127.0.0.1/catan/
-
-

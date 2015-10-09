@@ -1,0 +1,45 @@
+{% extends "index.html" %}
+{% block content %}
+
+	<div class="profile_section">
+
+        <div class="profile_section_title">
+                    Search results for '{{ name_given }} {{ name_family }}'
+        </div>
+        <div class="profile_subsection">
+            <table id="tbl_search">
+	        <thead>
+                <tr>
+                    <th>Family Name</th>
+	                <th>Given Name</th>
+	                <th>Sex</th>
+	                <th>Age</th>
+	            </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr class="clickableRow"
+                    href="/profile/{{ result['person_id'] }}">
+                    <td>{{ result['name_family'] }}</td>
+                    <td>{{ result['name_given'] }}</td>
+                    <td>{{ result['sex'] }}</td>
+                    <td>{{ result['age'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            </table>
+        </div>
+
+        <div style="text-align:center;">
+            <form method="post" enctype="multipart/form-data"
+          action="/new_person">
+            <!-- Hidden Items -->
+            <input type="hidden" name="name_given" value="{{ name_given }}">
+            <input type="hidden" name="name_family" value="{{ name_family }}">
+			<input class="profile_button myButton" type="submit" name="submit"
+				   value="Add new person '{{ name_given }} {{ name_family }}'">
+            </form>
+		</div>
+    </div>
+
+{% endblock %}

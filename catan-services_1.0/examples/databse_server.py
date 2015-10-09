@@ -4,8 +4,7 @@
     
     Note: This is for debug purposes only.
     
-    @author: Chad Spensky
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 # Native

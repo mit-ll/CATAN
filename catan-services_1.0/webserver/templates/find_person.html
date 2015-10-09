@@ -1,0 +1,32 @@
+{% extends "index.html" %}
+{% block content %}
+	<form method="post" enctype="multipart/form-data"
+          action="/find_person">
+	<div class="profile_section">
+
+        <div class="profile_section_title">
+                    Find a person
+        </div>
+        <div class="profile_subsection">
+            <div class="profile_subsection_row">
+                <span class="profile_label">Family Name:</span>
+                <span class="profile_value">
+                    <input name="name_family" type="text">
+                </span>
+            </div>
+            <div class="profile_subsection_row">
+                <span class="profile_label">Given Name:</span>
+                <span class="profile_value">
+                    <input name="name_given" type="text">
+                </span>
+            </div>
+        </div>
+
+        <div style="text-align:center;">
+			<input class="profile_button myButton" type="submit" name="submit"
+				   value="Search for person">
+		</div>
+    </div>
+
+	</form>
+{% endblock %}

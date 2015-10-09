@@ -1,5 +1,8 @@
-# © 2015 Massachusetts Institute of Technology
+"""
+    A nice place to keep a bunch of global variables
 
+    (c) 2015 Massachusetts Institute of Technology
+"""
 import os
 
 TX_DEFAULT_SOCK = "/tmp/catan_tx.sock"
@@ -17,12 +20,13 @@ DB_FILENAME = os.path.join(DIR_ROOT, "db/catan.sqlite")
 MSG_ID_FILENAME = os.path.join(DIR_ROOT, "db/catan_message_ids.txt")
 DB_MSG_FILENAME = os.path.join(DIR_ROOT, "db/catan_messages.sqlite")
 
-METRICS_UPDATE_LOG_FILENAME = os.path.join(DIR_ROOT,"log/metrics_update.log")
-METRICS_DBSYNC_LOG_FILENAME = os.path.join(DIR_ROOT,"log/metrics_dbsync.log")
-GATEWAY_LOG_FILENAME = os.path.join(DIR_ROOT,"log/gateway.log")
+METRICS_UPDATE_LOG_FILENAME = os.path.join(DIR_ROOT, "log/metrics_update.log")
+METRICS_DBSYNC_LOG_FILENAME = os.path.join(DIR_ROOT, "log/metrics_dbsync.log")
+GATEWAY_LOG_FILENAME = os.path.join(DIR_ROOT, "log/gateway.log")
 
-LOG_FILENAME = os.path.join(DIR_ROOT,"log/catan.log")
-LOG_DNS = os.path.join(DIR_ROOT,"log/dns.log")
+LOG_FILENAME = os.path.join(DIR_ROOT, "log/catan.log")
+LOG_DNS = os.path.join(DIR_ROOT, "log/dns.log")
+LOG_WEBSERVER = os.path.join(DIR_ROOT, "log/webserver.log")
 
 UNIX_SOCK_MAX_SIZE = 8192
 
@@ -44,6 +48,7 @@ class MESSAGE_TYPE:
     
     # Database operations
     DB_PERSON = 6
+    DB_SERVICE = 7
     
     # SMS
     SMS_MESSAGE = 8
@@ -54,7 +59,6 @@ class MESSAGE_TYPE:
     # Discovery and routing
     RT_NODE_ANNOUNCEMENT = 10
     RT_GATEWAY_ANNOUNCEMENT = 11
-    
     
     DB_GPS = 12
     
@@ -73,6 +77,33 @@ MESSAGE_LIST_BROADCAST = [MESSAGE_TYPE.BROADCAST_MESSAGE,
                       MESSAGE_TYPE.SMS_MESSAGE]
     
 RT_NODE_ANNOUNCEMENT_DELAY = 30 # Seconds
+
+
+class SERVICE_TYPE:
+    REQUEST = 0
+    VOLUNTEER = 1
+
+class SERVICE_STATUS:
+    SUBMITTED = 0
+    CANCELED = 1
+    SATISFIED = 2
+    RESPONSE = 3
+
+class SERVICE_REQUEST_TYPE:
+    DECEASED = 0
+    WATER = 1
+    FOOD = 2
+    SHELTER = 3
+    CLEANUP = 4
+    FUEL = 5
+
+class SERVICE_VOLUNTEER_TYPE:
+    TRANSLATOR = 0
+    GUIDE = 1
+    LABORER = 2
+    COUNSELER = 3
+    RESCUER = 4
+    TRANSPORTATION = 5
 
 
 # UDP Specific settings

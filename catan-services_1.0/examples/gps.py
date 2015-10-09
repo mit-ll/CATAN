@@ -1,9 +1,7 @@
 """
     This is a simple example script showing our GPS module
     
-    @author: Chad Spensky
-    @organization: MIT Lincoln Laboratory
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 # CATAN

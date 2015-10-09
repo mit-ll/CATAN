@@ -1,8 +1,7 @@
 """
     All of the classes which handle our RX communication for our CATAN nodes.
     
-    @author: Chad Spensky
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 import multiprocessing

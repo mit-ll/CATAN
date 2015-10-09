@@ -1,10 +1,3 @@
-# © 2015 Massachusetts Institute of Technology
-#
-# This script setups a Raspbian-based Raspberry Pi to work with CATAN
-#
-# Author: Hongyi Hu
-# Org: MIT
-
 if [ $# -ne 2 ]; then
 
 	echo "Usage: $0 <ip address of pi> <Node ID of Pi>"

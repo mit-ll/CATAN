@@ -1,0 +1,38 @@
+{% extends "index.html" %}
+{% block content %}
+	<form method="post" enctype="multipart/form-data"
+          action="/find_person">
+	<div class="login_frame">
+
+        <div class="login_title">
+                    Please Identify Yourself
+        </div>
+        <div class="login_content">
+            <div class="login_message">
+                In order to interact with the CATAN system, you must first
+                identify yourself.  Please find yourself in our database, or
+                add yourself, and authenticate by selecting 'This is me'
+                to continue.
+            </div>
+            <div>
+                <span class="input_label">Family Name:</span>
+                <span class="input_value">
+                    <input name="name_family" type="text">
+                </span>
+            </div>
+            <div>
+                <span class="input_label">Given Name:</span>
+                <span class="input_value">
+                    <input name="name_given" type="text">
+                </span>
+            </div>
+        </div>
+
+        <div style="text-align:center;padding:1%">
+			<input class="profile_button myButton" type="submit" name="submit"
+				   value="Search for person">
+		</div>
+    </div>
+
+	</form>
+{% endblock %}

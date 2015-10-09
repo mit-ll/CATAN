@@ -1,7 +1,8 @@
 """
-© 2015 Massachusetts Institute of Technology
-"""
+    Nice class for easily manipulating raw byte-level data
 
+    (c) 2015 Massachusetts Institute of Technology
+"""
 import struct
 import logging
 logger = logging.getLogger(__name__)

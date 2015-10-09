@@ -5,15 +5,3 @@ DIR=/opt/catan/
 cd $DIR/scripts
 ./uninstall_service.sh
 
-# Uninstall web stuff
-if [ -e "/var/www/catan" ]; then
-	unlink /var/www/catan
-fi
-# CGI scripts
-if [ -e "/usr/lib/cgi-bin/getMapData.cgi" ]; then
-	unlink /usr/lib/cgi-bin/getMapData.cgi
-fi
-if [ -e "/usr/lib/cgi-bin/catan_script.cgi" ]; then
-	unlink /usr/lib/cgi-bin/catan_script.cgi
-fi
-

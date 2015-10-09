@@ -1,0 +1,57 @@
+{% extends "index.html" %}
+{% block content %}
+
+    <!-- Hidden inputs -->
+    <input id="geo_location" type="hidden" name="submitter_gps" value="">
+    {% for (text,vol_type) in volunteer_links %}
+
+        {% if vol_type in active_requests %}
+            <div class="services_button request_aid_selected">
+                <img src="/static/images/volunteer/{{ vol_type }}.png">
+                <div class="services_text services_text_selected">
+                    You volunteered for: <b>{{ text }}</b>
+                </div>
+                <div class="services_updates">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Comments</th>
+                            <th>Timestamp</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for update in active_requests[vol_type]['updates'] %}
+                        <tr>
+                            <td>{{ update['service_status_text'] }}</td>
+                            <td>{{ update['service_comments'] }}</td>
+                            <td>{{ update['timestamp_text'] }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="display: inline;">
+                <form class="services_form" action="/service_submit"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="service_id"
+                           value="{{ active_requests[vol_type]['service_id'] }}">
+                    <input type="hidden" name="service_status" value="1">
+                    <input type="submit" class="myButton services_button2"
+                           style="color:red"
+                           value="Stop Volunteering">
+                </form>
+                </div>
+            </div>
+        {% else %}
+        <div class="volunteer_button services_button"
+             onclick="requestService({{ service_type }}, {{ vol_type }}, '{{ text }}')">
+            <img src="/static/images/volunteer/{{ vol_type }}.png">
+            <div class="services_text">
+                {{ text }}
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+{% endblock %}

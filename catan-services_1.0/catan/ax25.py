@@ -1,6 +1,7 @@
 """
     AX25 module adapted from the DIXPRS project
-    © 2015 Massachusetts Institute of Technology
+
+    (c) 2015 Massachusetts Institute of Technology
 """
 ####################################################
 # APRS digipeater and gateway for amateur radio use

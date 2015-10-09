@@ -1,5 +1,3 @@
-© 2015 Massachusetts Institute of Technology
-
 # Meeting Notes (Communication)
 	Application Layer:
 	Defines basic type of messages (and associated communication path):

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CATAN: Communication Assistance Technology over Ad-Hoc Networks</title>
+	<link rel="stylesheet" type="text/css" href="/static/css/catan.css">
+	<script src="/static/js/jquery-1.11.1.min.js"></script>
+</head>
+<body onload="getLocation()">
+
+<div id="menu_bar" class="top_bar">
+    {% for menu_item in menu_items %}
+
+
+        {% if current_link == menu_item %}
+            <div class="menu_item myButton_clicked">
+        {% else %}
+
+            <div class="menu_item myButton"
+                 onclick="window.location='/{{ menu_item }}'">
+        {% endif %}
+
+            <img src="/static/images/{{ menu_item }}.png">
+            <div>
+                {{ text.menu[menu_item] }}
+            </div>
+        </div>
+
+    {% endfor %}
+    <div style="clear:both">
+    </div>
+</div>
+
+{% if session['identified'] %}
+<div id="bottom_bar" class="top_bar">
+    {% if current_link == "home" %}
+        <div class="myButton_clicked menu_item_bottom">
+    {% else %}
+        <div class="myButton menu_item_bottom" onclick="window.location='/home'">
+    {% endif %}
+        <img src="/static/images/home.png">
+    </div>
+                <div id="connected_name">
+        {{ session['name']['name_given'] +" "+ session['name']['name_family'] }}
+    </div>
+</div>
+{% endif %}
+
+
+<div id="content">
+    {% block content %}{% endblock %}
+</div>
+
+<div id="footer">
+    <img src="/static/images/catan.png">
+    <div>
+        &copy; 2015 Massachusetts Institute of Technology
+    </div>
+</div>
+
+<script src="/static/js/catan.js"></script>
+</body>
+</html>

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
     This is just a simple test client
-    © 2015 Massachusetts Institute of Technology
+
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 # Native

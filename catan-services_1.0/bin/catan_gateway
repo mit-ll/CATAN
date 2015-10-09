@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 """
-    This script starts the Catan interface with Google Person Finder
+    This script starts the CATAN interface with Google Person Finder
     
-    @author: Ben Bullough
-    @organization: MIT Lincoln Laboratory
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 import os

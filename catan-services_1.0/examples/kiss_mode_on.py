@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-# © 2015 Massachusetts Institute of Technology
-
+"""
+    (c) 2015 Massachusetts Institute of Technology
+"""
 import sys
 import os
 import serial

@@ -1,5 +1,4 @@
 #!/bin/sh
-# © 2015 Massachusetts Institute of Technology
  
 ### BEGIN INIT INFO
 # Provides:          catan_gateway

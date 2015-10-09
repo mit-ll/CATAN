@@ -2,8 +2,7 @@
     This will define numerous background services that will be running on our 
     CATAN nodes
     
-    @author: Chad Spensky
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 # Native
 import multiprocessing
@@ -16,15 +15,14 @@ import json
 import catan.globals as G
 import catan.utils as utils
 from catan.comms import TxClient, TxScheduler
-from catan.db import CatanDatabaseObject
+from catan.db.node import CatanDatabaseNodeObject
 
 class NodeAnnouncementService(multiprocessing.Process):
     """
         This service will run in the background and periodically announce
         this node's presence over the data link
     """
-    
-    
+
     def __init__(self, tx_socket, 
                  is_gateway=False,
                  db_client=None,
@@ -44,7 +42,6 @@ class NodeAnnouncementService(multiprocessing.Process):
         self.node_id = node_id
         
         multiprocessing.Process.__init__(self)
-        
 
     def run(self):
         """
@@ -76,7 +73,7 @@ class NodeAnnouncementService(multiprocessing.Process):
                     
                 elif gps_info != gps_prev:
                     logger.debug("Sending GPS info: %s"% gps_info)
-                    db_obj = CatanDatabaseObject()
+                    db_obj = CatanDatabaseNodeObject()
                     db_obj.node_info.gps_latitude = gps_info['latitude']
                     db_obj.node_info.gps_longitude = gps_info['longitude']
                     db_obj.node_info.gps_altitude = gps_info['altitude']

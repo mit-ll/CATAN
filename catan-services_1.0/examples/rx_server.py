@@ -3,8 +3,7 @@
     This starts up the appropriate backlink and start are RX server to start
     consumming CATAN messages. 
     
-    @author: Chad Spensky
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 #Native
 import logging

@@ -3,9 +3,8 @@
     This is our TX server that will listen on the appropriate UNIX socket and
     server as general API to all of our services.
     
-    @author: Chad Spensky
-    © 2015 Massachusetts Institute of Technology
-"""
+    (c) 2015 Massachusetts Institute of Technology
+ """
 # Native
 import time
 import logging

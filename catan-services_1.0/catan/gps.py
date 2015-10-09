@@ -1,6 +1,7 @@
 """
-    This a simple script to demonstrate interacting with our GPS receiver.
-    © 2015 Massachusetts Institute of Technology
+    This a simple script for interacting with our GPS receiver.
+
+    (c) 2015 Massachusetts Institute of Technology
 """
 # Native
 import serial

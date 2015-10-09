@@ -1,6 +1,4 @@
 #!/bin/sh -e
-# © 2015 Massachusetts Institute of Technology
-
 if [ -e "/etc/init.d/catan" ]; then
 	echo "Uninstalling main service..."
         sudo /etc/init.d/catan stop
@@ -22,3 +20,8 @@ if [ -e "/etc/init.d/catan_gateway" ]; then
         sudo unlink /etc/init.d/catan_gateway
 fi
 
+
+[ -f "/etc/supervisor/conf.d/catan_webserver.conf" ] && rm /etc/supervisor/conf.d/catan_webserver.conf
+supervisorctl stop catan_webserver
+supervisorctl reread
+supervisorctl update

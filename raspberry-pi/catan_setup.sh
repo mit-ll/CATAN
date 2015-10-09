@@ -1,5 +1,4 @@
 #!/bin/bash
-# © 2015 Massachusetts Institute of Technology
 
 ### make sure that this script is executed from root
 if [ $(whoami) != 'root' ]
@@ -12,15 +11,20 @@ This script should be executed as root or with sudo:
 fi
 
 
-printf "Updating APT..."
+printf "Updating APT...\n"
 sudo apt-get update > /dev/null || (echo "* Apt-get failed.  (Do you have a proxy setup?)" && exit)
+
+printf "Upgrading packages"
+sudo apt-get -y upgrade
+
 
 printf "Installing dependencies . . .\n"
 ### Install apache, sqlite, hostapd and dhcp server for front end Wi-Fi
 ### Purge any old versions to ensure we have clean configs
-apt-get -y purge  apache2 hostapd isc-dhcp-server sshpass > /dev/null
-apt-get -y install sqlite3 apache2 hostapd isc-dhcp-server vim > /dev/null
+apt-get -y purge hostapd isc-dhcp-server > /dev/null
+apt-get -y install sqlite3 python-flask supervisor hostapd isc-dhcp-server vim sshpass tcpdump python-dateutil python-netifaces python-requests python-pip > /dev/null
 
+sudo pip --proxy http://155.34.234.20:8080 install requests
 
 ### Install AX25 stuff - currently not used
 # apt-get -y install libax25 libax25-dev ax25-tools ax25-apps 
@@ -35,10 +39,11 @@ else
 	printf "Configuring network interfaces...\n"
 	cp -n /etc/network/interfaces{,.bak}
 	sed -i /etc/network/interfaces \
-	    -e 's/^auto wlan0/#auto wlan0/' \
-	    -e 's/^iface wlan0/#iface wlan0/' \
-	    -e 's/^wpa-roam/#wpa-roam/' \
+#	    -e 's/^auto wlan0/#auto wlan0/' \
+#	    -e 's/^iface wlan0/#iface wlan0/' \
+#	    -e 's/^wpa-roam/#wpa-roam/' \
 	    -e 's/^iface default inet dhcp/#iface default inet dhcp/'
+            -e 's/iface eth0 inet manual/iface eth0 inet dhcp/'
 
 	cat <<EOF >> /etc/network/interfaces
 # CATAN
@@ -143,8 +148,29 @@ ifconfig wlan0 192.168.2.1
 sudo update-rc.d hostapd enable 
 sudo update-rc.d isc-dhcp-server enable
 
+
+## Network sharing
+printf "  Configuring network sharing.../"
+sudo sed -i -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+
+sudo iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+sudo iptables -A FORWARD -i eth1 -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+sudo iptables -A FORWARD -i wlan0 -o eth1 -j ACCEPT
+
+sudo sh -c "iptables-save > /etc/iptables.ipv4.nat"
+
+sudo sh -c "echo 'up iptables-restore < /etc/iptables.ipv4.nat' >> /etc/network/interfaces"
+
+
+# BUGFIX: Somehow eth0 is getting changed!
+sed -i /etc/network/interfaces -e 's/iface eth0 inet manual/iface eth0 inet dhcp/'
+
+
+
 # Setup a contrab job to continously check that our access point is up.
-#(crontab -l; echo "* * * * * /opt/catan/scripts/check_wifi.sh") | crontab - 
+(sudo crontab -l; echo "* * * * * /opt/catan/scripts/check_wifi.sh > /opt/catan/log/crontab.log 2>&1") | sudo crontab - 
 
 # Fix WiFi Driver
-#echo "options ath9k nohwcrypt=1" | sudo tee /etc/modprobe.d/ath9k.conf
+echo "options ath9k nohwcrypt=1" | sudo tee /etc/modprobe.d/ath9k.conf
+#sudo sh -c "echo blacklist acer-wmi >> /etc/modprobe.d/blacklist.conf"

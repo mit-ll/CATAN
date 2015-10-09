@@ -1,6 +1,7 @@
 """
     This database will be used to keep track of all our messages for retransmission purposes.
-    © 2015 Massachusetts Institute of Technology
+
+    (c) 2015 Massachusetts Institute of Technology
 """
 
 # Native

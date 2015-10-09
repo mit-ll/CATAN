@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# © 2015 Massachusetts Institute of Technology
 
 # Native
 import os
@@ -8,6 +7,19 @@ from distutils.core import setup
 # CATAN
 import catan.globals as G
 
+def get_packages(rel_dir):
+
+    packages = [rel_dir]
+    for x in os.walk(rel_dir):
+        # break into parts
+        base = list(os.path.split(x[0]))
+        if base[0] == "":
+            del base[0]
+
+        for mod_name in x[1]:
+            packages.append( ".".join(base + [mod_name]) )
+
+    return packages
 
 def get_data_files(rel_dir):
     """
@@ -36,9 +48,7 @@ data_files += get_data_files(G.DIR_CONF)
 data_files += get_data_files(G.DIR_BINARIES)
 data_files += get_data_files(G.DIR_SCRIPTS)
 # Web stuff
-data_files += get_data_files("www")
-data_files += get_data_files("cgi-bin")
-
+data_files += get_data_files("webserver")
 
 
 setup(name='CATAN',
@@ -48,5 +58,5 @@ setup(name='CATAN',
       author_email='chad.spensky@ll.mit.edu',
       url='N/A',
       data_files = data_files,
-      packages=['catan'],
+      packages=get_packages('catan'),
      )

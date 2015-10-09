@@ -1,8 +1,7 @@
 """
     All of the classes which handle our TX communication for our CATAN nodes.
     
-    @author: Chad Spensky
-    © 2015 Massachusetts Institute of Technology
+    (c) 2015 Massachusetts Institute of Technology
 """
 # Native
 import multiprocessing
@@ -398,8 +397,7 @@ class TxClient:
             self.SOCK.close()
             
         return True
-    
-    
+
     def send(self, message_type, data="", destination=G.MESSAGE_BROADCAST_ADDRESS):
         """
             Craft a Node message and send it over our local UNIX socket
@@ -418,7 +416,6 @@ class TxClient:
         msg.destination = destination
         msg.frag_id = 0
         msg.frag_num = 1
-        
         
         # Set the Length
         msg.length = len(msg.data)
@@ -462,7 +459,6 @@ class FragmentReassembler:
         start_id = node_message.id - node_message.frag_id
         msg_key = (node_message.source, node_message.type, start_id)
         self.messages[msg_key] = {node_message.frag_id: node_message}
-        
             
     def _get_msg_dict(self, node_message):
         """
@@ -499,7 +495,6 @@ class FragmentReassembler:
         else:
             #create a new entry in messages
             self._add_msg_dict(node_message)
-            
 
     def _is_message_complete(self, node_message):
         """
@@ -507,8 +502,7 @@ class FragmentReassembler:
         """
         msg_dict = self._get_msg_dict(node_message)
         return True if len(msg_dict) == node_message.frag_num else False
-        
-        
+
     def _reassemble_msg(self, node_message):
         """
             Reassembles the fragments associated with the given 

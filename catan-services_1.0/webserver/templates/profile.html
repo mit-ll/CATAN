@@ -1,0 +1,242 @@
+{% extends "index.html" %}
+{% block content %}
+
+	{% if session['pid'] == pid %}
+
+	<div id="identify_div">
+	<form method="post" action="/logout">
+		<input class="profile_button myButton" type="submit"
+			   value="This is NOT me" />
+	</form>
+	</div>
+
+	{% else %}
+	<div id="identify_div">
+	<form method="post" action="/identify/{{ pid }}">
+		<!-- Hidden inputs -->
+		<input id="geo_location" type="hidden" name="submitter_gps" value="" />
+		<input id="user_is_submitter" type="hidden" name="user_is_submitter"
+			   value="1" />
+		<input id="person_id" type="hidden" name="person_id"
+			   value="{{ pid }}" />
+		<input class="profile_button myButton" type="submit"
+			   value="This is me" />
+	</form>
+	</div>
+	{% endif %}
+
+	<form class="profile_form" method="post" enctype="multipart/form-data"
+		  action="/update_person">
+	<div class="profile_section">
+		<div class="profile_section_title">
+			Personal Information
+		</div>
+		<div class="profile_subsection">
+			<!-- Hidden inputs -->
+			<input id="geo_location" type="hidden" name="submitter_gps"
+				   value="" />
+			<input id="person_id" type="hidden" name="person_id"
+				   value="{{ pid }}" />
+
+			<div class="profile_section_subtitle">Identifying Information</div>
+
+			<div class="profile_subsection_row">
+				<span class="profile_label">Family Name:</span>
+				<span class="profile_value">
+						{{ person_info['name_family'] }}
+				</span>
+			</div>
+			<div class="profile_subsection_row">
+				<span class="profile_label">Given Name:</span>
+				<span class="profile_value">
+					{{ person_info['name_given'] }}
+				</span>
+			</div>
+			<div class="profile_subsection_row">
+				<span class="profile_label">Sex:</span>
+				<span class="profile_value">
+					{{ person_info['sex'] }}
+				</span>
+			</div>
+			<div class="profile_subsection_row profile_subsection_row_last">
+				<span class="profile_label">Age:</span>
+				<span class="profile_value">
+					{{ person_info['age'] }}
+				</span>
+			</div>
+		</div>
+
+		<div class="profile_subsection">
+	    	<div class="profile_section_subtitle">Description</div>
+			<div class="profile_subsection_row">
+				<div class="profile_text_row">
+					{% if 'person_description' in person_info and
+					person_info['person_description'] != None %}
+						{{ person_info['person_description'] }}
+					{% else %}
+						<i>No description provided.</i>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+
+		<div class="profile_subsection">
+	    	<div class="profile_section_subtitle">Contact Information</div>
+			{% for contact_text, contact_item in contact_items %}
+			<div class="profile_subsection_row">
+				<span class="profile_label">
+					{{ contact_text }}
+				</span>
+				<span class="profile_value">
+					{% if contact_item in person_info
+					and person_info[contact_item]	!= None %}
+						{{ person_info[contact_item] }}
+					{% elif session['identified'] %}
+						<input type="text" name="{{ contact_item }}" />
+					{% else %}
+						?
+					{% endif %}
+				</span>
+			</div>
+			{% endfor %}
+		</div>
+
+		<div class="profile_subsection">
+			<div class="profile_section_subtitle">Picture(s)</div>
+
+			{% if messages|length == 0 %}
+			<div class="profile_text_row">
+				<i>No pictures have been uploaded</i>
+			</div>
+			{% endif %}
+
+			{% if session['identified'] %}
+			<div class="profile_subsection_row">
+				<span class="profile_label">Upload picture:</span>
+				<span class="profile_value">
+					<input type="file" name="picture_file">
+				</span>
+			</div>
+			<div class="profile_subsection_row profile_subsection_row_last">
+				<span class="profile_label">Description of picture:</span>
+				<span class="profile_value">
+					<input type="text" name="picture_description">
+				</span>
+			</div>
+			{% endif %}
+		</div>
+
+		{% if session['identified'] %}
+		<div style="text-align:center;">
+			<input class="profile_button myButton" type="submit" name="submit"
+				   value="Update profile">
+		</div>
+		{% endif %}
+
+	</div>
+
+	<div class="profile_section">
+		<div class="profile_section_title">Status Information</div>
+		{% for message in messages %}
+		<div class="message_item">
+			<div class="message_status">
+				{{ message['status'] }}
+			</div>
+			<div class="message_content">
+				{% if message['person_message'] != None %}
+					{{ message['person_message'] }}
+				{% else %}
+					<i>No message provided.</i>
+				{% endif %}
+			</div>
+			<div class="message_location">
+				<span class="message_label">
+					Last known location was <b>{{ message['status_location'] }}</b>
+				</span>
+			</div>
+			<div class="message_header">
+				Submitted by <a href="/profile/{{ message['submitter_id'] }}">
+				{% if message['sub_name_given'] != None %}
+					{{ message['sub_name_given'] }} {{
+				message['sub_name_family'] }}
+				{% else %}
+					Unknown
+				{% endif %}
+				</a>
+				on
+				{{ message['timestamp'] }}
+			</div>
+		</div>
+		{% endfor %}
+
+		{% if messages|length == 0 %}
+		<div class="profile_text_row">
+			<i>No status messages</i>
+		</div>
+		{% endif %}
+
+		{% if session['identified'] %}
+		<div class="profile_subsection">
+			<div class="profile_section_subtitle">Report the status of
+				this person</div>
+			<div class="profile_subsection_row">
+				<span class="profile_label">Status:</span>
+				<span class="profile_value">
+				<select id="status" name="status" style="width:100%">
+
+					<option value="">
+					  Unspecified
+					</option>
+				  $status['status']
+					<option value="information_sought">
+					  I am seeking information
+					</option>
+
+					<option value="is_note_author">
+					  I am this person
+					</option>
+
+					<option value="believed_alive">
+					  I have received information that this person is alive
+					</option>
+
+					<option value="believed_missing">
+					  I have reason to think this person is missing
+					</option>
+
+				</select>
+				</span>
+			</div>
+
+
+			<div class="profile_subsection_row">
+				<span class="profile_label">Last know location:</span>
+				<span class="profile_value">
+					<textarea rows="4" name="status_location"></textarea>
+				</span>
+			</div>
+
+			<div class="profile_subsection_row">
+				<span class="profile_label">Message:</span>
+				<span class="profile_value">
+					<textarea rows="4" name="person_message"></textarea>
+				</span>
+			</div>
+
+			<div class="profile_subsection_row profile_subsection_row_last">
+				<span class="profile_label">Relation to person:</span>
+				<span class="profile_value">
+					<input type="text" name="relationship" />
+				</span>
+			</div>
+
+		</div>
+
+		<div style="text-align:center;">
+			<input class="myButton profile_button" type="submit" name="submit"
+				   value="Submit a note">
+		</div>
+		{% endif %}
+	</div>
+	</form>
+{% endblock %}

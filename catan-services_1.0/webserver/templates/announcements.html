@@ -1,0 +1,89 @@
+{% extends "index.html" %}
+{% block content %}
+
+	<div class="announcement_section">
+
+
+		<div class="announcement_section_title">Global Announcements</div>
+
+
+		{% for message in announcements %}
+		<div class="announcement_global">
+			<div class="announcement_global_title">
+				{{ message['title'] }}
+			</div>
+			<div class="announcement_global_content">
+				{% if message['content'] != None %}
+					{{ message['content'] }}
+				{% else %}
+					<i>No message provided.</i>
+				{% endif %}
+			</div>
+			<div class="announcement_global_submitter">
+				Submitted by <b>{{ message['submitter_name'] }} / {{
+				message['submitter_organization'] }}</b>
+				on
+				{{ message['timestamp_text'] }}
+			</div>
+		</div>
+		{% endfor %}
+
+		{% if announcements|length == 0 %}
+		<div class="profile_text_row">
+			<i>You have no messages</i>
+		</div>
+		{% endif %}
+
+	</div>
+
+	{% if session['identified'] %}
+	<div class="announcement_section">
+
+
+		<div class="announcement_section_title">Your Messages</div>
+
+		{% for message in messages %}
+		<div class="announcement_message">
+			<div class="announcement_message_title">
+				{{ message['status'] }}
+			</div>
+			<div class="announcement_message_content">
+				{% if message['person_message'] != None %}
+					{{ message['person_message'] }}
+				{% else %}
+					<i>No message provided.</i>
+				{% endif %}
+			</div>
+			<div class="announcement_message_location">
+				<span class="message_label">
+					Reported your location as <b>{{
+					message['status_location']
+					}}</b>
+				</span>
+			</div>
+			<div class="announcement_message_submitter">
+				<span class="message_label">
+				Submitted by <a href="/profile/{{ message['submitter_id'] }}">
+				{% if message['sub_name_given'] != None %}
+					{{ message['sub_name_given'] }} {{
+				message['sub_name_family'] }}
+				{% else %}
+					Unknown
+				{% endif %}
+				</a>
+				on
+				{{ message['timestamp'] }}
+				</span>
+			</div>
+		</div>
+		{% endfor %}
+
+		{% if messages|length == 0 %}
+		<div class="profile_text_row">
+			<i>You have no messages</i>
+		</div>
+		{% endif %}
+	</div>
+	{% endif %}
+
+{% endblock %}
