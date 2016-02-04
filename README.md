@@ -51,7 +51,7 @@ communication devices that survivors of a disaster are likely to have
 access to.  This type of technology should be of interest to the
 humanitarian assistance and disaster response (HADR) community.
 
-For more information check out our [presentation](https://www.youtube.com/watch?v=mckd1VZACb8) at ICCM 2014.
+For more information check out our [presentation](https://www.youtube.com/watch?v=mckd1VZACb8) at ICCM 2014 or [publication](http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7343958) at GHTC 2015.
 
 
 Authors: Ben Bullough, Hongyi Hu, Chad Spensky
