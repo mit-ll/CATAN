@@ -66,7 +66,7 @@ Email: catan@ll.mit.edu
 		* **A4 SSH**
 		* **\<Enable\>**
 	* Exit, and reboot system.
-3. Ensure that the Pi is connected to the internet.
+3. Ensure that the Pi is connected to the internet (and that you are connecting over **eth0** for the initial setup).
 4. Run our setup script.  This should install all dependencies and services for CATAN.
 ```bash
 	./setup_new_pi.sh <ip address> <CATAN Node ID>
