@@ -1,5 +1,5 @@
-catan-services (1.0-1) unstable; urgency=low
+catan-services (1.0-1) trusty; urgency=low
 
   * source package automatically created by stdeb 0.6.0+git
 
- -- Chad Spensky <chad.spensky@ll.mit.edu>  Fri, 12 Dec 2014 13:41:48 -0500
+ -- Chad Spensky <cspensky@cs.ucsb.edu>  Fri, 12 Dec 2014 13:41:48 -0500

@@ -2,11 +2,5 @@
 
 DIR=/opt/catan/
 
-echo -n "Would you like to install CATAN as a service that will auto-start? [y/n]"
-read like
-case "$like" in
-y*|Y*)
-	cd $DIR/scripts
-        ./install_service.sh
-;;
-esac
+cd $DIR/scripts
+./install_service.sh

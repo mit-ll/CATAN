@@ -112,9 +112,8 @@ class GPSReceiver():
             ser.close()
             
         except:
-            logger.error("Could not communicate with GPS Reciver.")
-            import traceback
-            traceback.print_exc()
+            logger.error("Could not communicate with GPS Receiver. (Is it "
+                         "connected?)")
             if ser is not None:
                 ser.close()
                 
@@ -142,19 +141,7 @@ class GPSReceiver():
                 if message_type == "$GPGGA":
                     utc_time = params[1]
                     utc_time = utc_time[:2]+":"+utc_time[2:4]+":"+utc_time[4:]
-                    
-                    # Extract latitude
-                    latitude = params[2]
-                    latitude_cardinal = params[3]
-                    lat_decimal = self._nmea_to_decimal_(latitude,
-                                                  latitude_cardinal)
-                    # Extract longitude
-                    longitude = params[4]
-                    longitude_cardinal = params[5]
-                    long_decimal = self._nmea_to_decimal_(longitude,
-                                                  longitude_cardinal)
-                    
-                    
+
                     fix_quality = int(params[6])
                     satillite_count = int(params[7])
                     horizontal_dilution = params[8]
@@ -167,6 +154,18 @@ class GPSReceiver():
 
                     # if we have a gps fix, return value
                     if fix_quality == 1:
+
+                        # Extract latitude
+                        latitude = params[2]
+                        latitude_cardinal = params[3]
+                        lat_decimal = self._nmea_to_decimal_(latitude,
+                                                      latitude_cardinal)
+                        # Extract longitude
+                        longitude = params[4]
+                        longitude_cardinal = params[5]
+                        long_decimal = self._nmea_to_decimal_(longitude,
+                                                      longitude_cardinal)
+
                         # Set our return value and break                    
                         rtn = {"latitude":lat_decimal,
                                "longitude":long_decimal,
@@ -194,8 +193,6 @@ class GPSReceiver():
             ser.close()
         except:
             logger.error("Could not communicate with GPS Reciver.")
-            import traceback
-            traceback.print_exc()
             if ser is not None:
                 ser.close()
                            
