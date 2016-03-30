@@ -61,6 +61,10 @@ Email: catan@ll.mit.edu
  * We provide a script to help copy the image over in *raspberry-pi*.
  
 2. Run **raspi-config** on the Pi and expand the file system and enable SSH.
+	* **1 Expand File System**
+	* **9 Advanced Options**
+		* **A4 SSH**
+		* **\<Enable\>**
 3. Ensure that the Pi is connected to the internet.
 4. Run our setup script.  This should install all dependencies and services for CATAN.
 ```bash
