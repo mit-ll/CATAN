@@ -65,6 +65,7 @@ Email: catan@ll.mit.edu
 	* **9 Advanced Options**
 		* **A4 SSH**
 		* **\<Enable\>**
+	* Exit, and reboot system.
 3. Ensure that the Pi is connected to the internet.
 4. Run our setup script.  This should install all dependencies and services for CATAN.
 ```bash
