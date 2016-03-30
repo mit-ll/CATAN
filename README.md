@@ -53,20 +53,21 @@ humanitarian assistance and disaster response (HADR) community.
 
 For more information check out our [presentation](https://www.youtube.com/watch?v=mckd1VZACb8) at ICCM 2014 or [publication](http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7343958) at GHTC 2015.
 
-
-Authors: Ben Bullough, Hongyi Hu, Chad Spensky
-
 Email: catan@ll.mit.edu
-
-Thanks to: Andrew Weinert, Charles Cimet, Mas Kocberber
 
 # Installation Instructions
 
 1. Setup your raspberry pi with Raspbian and get it on the internet. [Guide](http://www.raspberrypi.org/documentation/installation/installing-images/)
+ * We provide a script to help copy the image over in *raspberry-pi*.
+ 
+2. Run **raspi-config** on the Pi and expand the file system and enable SSH.
+3. Ensure that the Pi is connected to the internet.
+4. Run our setup script.  This should install all dependencies and services for CATAN.
+```bash
+	./setup_new_pi.sh <ip address> <CATAN Node ID>
+```
 
-2. Run the setup script.  This should install all dependencies and services for CATAN.
-
-	./setup\_new\_pi.sh <ip address>
+*Note: This install has only been tested and confirmed on Rasbian Jessie.*
 
 # Raspberry Pi USB Configuration
              ______ ______
@@ -85,7 +86,7 @@ Thanks to: Andrew Weinert, Charles Cimet, Mas Kocberber
  - Username/Password: pi/raspberry
  - IP Address for OpenBTS port: 192.168.0.3
  - Internet should be DHCP, may require a restart
- - UART: screen 112500 /dev/ttyUSB<Number that Pi is on>
+ - UART: screen /dev/ttyUSB\<Number that Pi is on\> 115200
 
 # Useful links
 
