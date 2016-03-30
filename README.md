@@ -90,8 +90,12 @@ Email: catan@ll.mit.edu
 
  - Username/Password: pi/raspberry
  - IP Address for OpenBTS port: 192.168.0.3
+ - IP Address for WiFi interface: 192.168.2.1
  - Internet should be DHCP, may require a restart
- - UART: screen /dev/ttyUSB\<Number that Pi is on\> 115200
+ - UART: 
+```bash
+	screen /dev/ttyUSB\<Number that Pi is on\> 115200
+```
 
 # Useful links
 
