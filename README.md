@@ -115,10 +115,11 @@ These instructions should help you get a CATAN node up and running.
 # Debugging
 
 ## WiFi Problems
- * Check to make sure that both hostapd and dhcpd are running
+ * Check to make sure that both hostapd and dhcpd are running:
  ```bash
 $ ps aux | grep hostapd
 root       803  0.4  0.2   5912  2680 ?        Ss   20:48   0:02 /usr/sbin/hostapd -B -P /run/hostapd.pid /etc/hostapd/hostapd.conf
+
 $ ps aux | grep dhcpd
 root      2354  0.0  0.7  10488  7352 ?        Ss   20:58   0:00 /usr/sbin/dhcpd -q -cf /etc/dhcp/dhcpd.conf -pf /var/run/dhcpd.pid wlan0
  ```
