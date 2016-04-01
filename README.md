@@ -104,13 +104,15 @@ These instructions should help you get a CATAN node up and running.
 
  1. Connect your computer to the router and ensure that it receives and IP address over DHCP (10.X.X.X subnet).
  2. Flash the appropriate [Broadband-Hamnet](http://www.broadband-hamnet.org/) firmware onto the router, found in *router_firmware*. For example (ubiquiti_rocket2)
+
  ```bash
- $ ./flash_ubiquiti.sh
- ```
+$ ./flash_ubiquiti.sh
+```
  3. Then configure the router ID to the corresponding CATAN node ID (This requires a HAM radio license and callsign).
+
  ```bash
- $ ./config_ubiquiti.sh
- ```
+$ ./config_ubiquiti.sh
+```
 
 # Debugging
 
