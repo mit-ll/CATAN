@@ -106,7 +106,7 @@ class UDPTransmitter(LinkTransmitter):
             except:
                 logger.warn("Your kernel doesn't support binding to an " \
                             "interface.  Your packets may be going out on the" \
-                            " wrong interface")
+                            " wrong interface. (%s was intended)"% self.iface)
             
             sock.sendto(`node_message`, (self.broadcast_address, self.port))
             

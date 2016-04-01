@@ -53,22 +53,30 @@ humanitarian assistance and disaster response (HADR) community.
 
 For more information check out our [presentation](https://www.youtube.com/watch?v=mckd1VZACb8) at ICCM 2014 or [publication](http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7343958) at GHTC 2015.
 
-
-Authors: Ben Bullough, Hongyi Hu, Chad Spensky
-
 Email: catan@ll.mit.edu
 
-Thanks to: Andrew Weinert, Charles Cimet, Mas Kocberber
-
 # Installation Instructions
+These instructions should help you get a CATAN node up and running.
 
+## Raspberry Pi
 1. Setup your raspberry pi with Raspbian and get it on the internet. [Guide](http://www.raspberrypi.org/documentation/installation/installing-images/)
+ * We provide a script to help copy the image over in *raspberry-pi*.
+ 
+2. Run **raspi-config** on the Pi and expand the file system and enable SSH.
+	* **1 Expand File System**
+	* **9 Advanced Options**
+		* **A4 SSH**
+		* **\<Enable\>**
+	* Exit, and reboot system.
+3. Ensure that the Pi is connected to the internet (and that you are connecting over **eth0** for the initial setup).
+4. Run our setup script.  This should install all dependencies and services for CATAN.
+```bash
+	./setup_new_pi.sh <ip address> <CATAN Node ID>
+```
 
-2. Run the setup script.  This should install all dependencies and services for CATAN.
+*Note: This install has only been tested and confirmed on Rasbian Jessie.*
 
-	./setup\_new\_pi.sh <ip address>
-
-# Raspberry Pi USB Configuration
+### Raspberry Pi USB Configuration
              ______ ______
      _____  | USB0 | USB2 |
     | ETH | | USB1 | USB3 |
@@ -80,12 +88,43 @@ Thanks to: Andrew Weinert, Charles Cimet, Mas Kocberber
 * USB2 - USB Extender to GPS
 * USB3 - Wi-Fi Frontend card
 
-# Raspberry Pi Settings
+### Raspberry Pi Settings
 
  - Username/Password: pi/raspberry
  - IP Address for OpenBTS port: 192.168.0.3
+ - IP Address for WiFi interface: 192.168.2.1
  - Internet should be DHCP, may require a restart
- - UART: screen 112500 /dev/ttyUSB<Number that Pi is on>
+ - UART: 
+```bash
+	screen /dev/ttyUSB<Number that Pi is on> 115200
+```
+![UART Image](http://workshop.raspberrypiaustralia.com/assets/console-cable-connections.jpg)
+
+## Router Firmware
+
+ 1. Connect your computer to the router and ensure that it receives and IP address over DHCP (10.X.X.X subnet).
+ 2. Flash the appropriate [Broadband-Hamnet](http://www.broadband-hamnet.org/) firmware onto the router, found in *router_firmware*. For example (ubiquiti_rocket2)
+
+ ```bash
+$ ./flash_ubiquiti.sh
+```
+ 3. Then configure the router ID to the corresponding CATAN node ID (This requires a HAM radio license and callsign).
+
+ ```bash
+$ ./config_ubiquiti.sh
+```
+
+# Debugging
+
+## WiFi Problems
+ * Check to make sure that both hostapd and dhcpd are running:
+ ```bash
+$ ps aux | grep hostapd
+root       803  0.4  0.2   5912  2680 ?        Ss   20:48   0:02 /usr/sbin/hostapd -B -P /run/hostapd.pid /etc/hostapd/hostapd.conf
+
+$ ps aux | grep dhcpd
+root      2354  0.0  0.7  10488  7352 ?        Ss   20:58   0:00 /usr/sbin/dhcpd -q -cf /etc/dhcp/dhcpd.conf -pf /var/run/dhcpd.pid wlan0
+ ```
 
 # Useful links
 
