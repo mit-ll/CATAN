@@ -43,3 +43,13 @@
 *.synctex.gz(busy)
 *.pdfsync
 
+# Debian stuff
+*.upload
+*.dsc
+*.gz
+*.build
+*.changes
+*.img
+
+
+
