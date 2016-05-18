@@ -143,3 +143,6 @@ necessarily endorsed by the United States Government.
 <br>
 © 2015 Massachusetts Institute of Technology 
 </p>
+
+#How to test: 
+You should be able to see CATAN services running with ps aux | grep catan
