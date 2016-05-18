@@ -130,6 +130,7 @@ $ ps aux | grep dhcpd
 root      2354  0.0  0.7  10488  7352 ?        Ss   20:58   0:00 /usr/sbin/dhcpd -q -cf /etc/dhcp/dhcpd.conf -pf /var/run/dhcpd.pid wlan0
  ```
 
+
 # Useful links
 
 - [Connecting to Pi using FTDI](http://workshop.raspberrypiaustralia.com/usb/ttl/connecting/2014/08/31/01-connecting-to-raspberry-pi-via-usb/)
@@ -137,6 +138,7 @@ root      2354  0.0  0.7  10488  7352 ?        Ss   20:58   0:00 /usr/sbin/dhcpd
 # Installing as a service
 
 - [Link](http://blog.scphillips.com/2013/07/getting-a-python-script-to-run-in-the-background-as-a-service-on-boot/)
+
 
 # Disclaimer
 <p align="center">
@@ -149,8 +151,14 @@ necessarily endorsed by the United States Government.
 </p>
 
 #How to test: 
-You should be able to see CATAN services running with 
+* You should be able to see CATAN services running with 
 ```bash
 $ ps aux | grep catan. 
 ```
-Also, the /opt/catan folder will include all of the runtime files for CATAN. Logs are stored in /opt/catan/log.
+ * Also, the /opt/catan folder will include all of the runtime files for CATAN. Logs are stored in /opt/catan/log.
+
+ * After you have two nodes running (each with its own radio) you can double check that the radios see each other by 
+ going to localnode:8080. In the main panel go to Mesh Status- you should be able to see the other node's radio 
+ under current neighbors. 
+
+
