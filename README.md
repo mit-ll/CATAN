@@ -56,6 +56,7 @@ For more information check out our [presentation](https://www.youtube.com/watch?
 Email: catan@ll.mit.edu
 
 # Installation Instructions
+
 These instructions should help you get a CATAN node up and running.
 
 ## Raspberry Pi
@@ -69,9 +70,9 @@ These instructions should help you get a CATAN node up and running.
 		* **\<Enable\>**
 	* Exit, and reboot system.
 3. Ensure that the Pi is connected to the internet (and that you are connecting over **eth0** for the initial setup).
-4. Run our setup script.  This should install all dependencies and services for CATAN.
+4. Run our setup script from another machine.  This should install all dependencies and services for CATAN. The CATAN Node id cannot be zero. 
 ```bash
-	./setup_new_pi.sh <ip address> <CATAN Node ID>
+	./setup_new_pi.sh <ip address of pi> <CATAN Node ID>
 ```
 
 *Note: This install has only been tested and confirmed on Rasbian Jessie.*
@@ -82,12 +83,13 @@ These instructions should help you get a CATAN node up and running.
     | ETH | | USB1 | USB3 |
     -----------------------
 
-*  ETH - Ubiquiti Router
+*  ETH - Ubiquiti Rocket M2 Router
 * USB0 - Internet USB/Ethernet Dongle
 * USB1 - OpenBTS USB/Ethernet Dongle
 * USB2 - USB Extender to GPS
 * USB3 - Wi-Fi Frontend card
 
+    
 ### Raspberry Pi Settings
 
  - Username/Password: pi/raspberry
@@ -102,6 +104,7 @@ These instructions should help you get a CATAN node up and running.
 
 ## Router Firmware
 
+
  1. Connect your computer to the router and ensure that it receives and IP address over DHCP (10.X.X.X subnet).
  2. Flash the appropriate [Broadband-Hamnet](http://www.broadband-hamnet.org/) firmware onto the router, found in *router_firmware*. For example (ubiquiti_rocket2)
 
@@ -113,6 +116,7 @@ $ ./flash_ubiquiti.sh
  ```bash
 $ ./config_ubiquiti.sh
 ```
+[More detailed instructions in the router_software file](https://github.com/mit-ll/CATAN/tree/master/router_software/ubiquiti_rocket2)
 
 # Debugging
 
@@ -145,4 +149,8 @@ necessarily endorsed by the United States Government.
 </p>
 
 #How to test: 
-You should be able to see CATAN services running with ps aux | grep catan
+You should be able to see CATAN services running with 
+```bash
+$ ps aux | grep catan. 
+```
+Also, the /opt/catan folder will include all of the runtime files for CATAN. Logs are stored in /opt/catan/log.
