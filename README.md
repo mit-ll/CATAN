@@ -139,18 +139,23 @@ root      2354  0.0  0.7  10488  7352 ?        Ss   20:58   0:00 /usr/sbin/dhcpd
 
 - [Link](http://blog.scphillips.com/2013/07/getting-a-python-script-to-run-in-the-background-as-a-service-on-boot/)
 
+# Citation
+
+Please use this DOI number reference, published on [Zenodo](https://zenodo.org), when citing the software:    
+
 
 # Disclaimer
-<p align="center">
-This work was sponsored by the Department of the Air Force under Air
-Force Contract #FA8721-05-C-0002.  Opinions, interpretations,
-conclusions and recommendations are those of the authors and are not
-necessarily endorsed by the United States Government.
-<br>
-© 2015 Massachusetts Institute of Technology 
-</p>
+DISTRIBUTION STATEMENT A. Approved for public release: distribution unlimited.  
 
-#How to test: 
+<b>© 2019 MASSACHUSETTS INSTITUTE OF TECHNOLOGY</b>  
+* Subject to FAR 52.227-11 – Patent Rights – Ownership by the Contractor (May 2014)  
+* SPDX-License-Identifier: BSD-3-Clause    
+
+This material is based upon work supported by the Air Force under Air Force Contract No. FA8721-05-C-0002. Any opinions, findings, conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the Air Force.
+
+The software/firmware is provided to you on an As-Is basis
+
+## How to test:
 * You should be able to see CATAN services running with 
 ```bash
 $ ps aux | grep catan. 
@@ -160,5 +165,3 @@ $ ps aux | grep catan.
  * After you have two nodes running (each with its own radio) you can double check that the radios see each other by 
  going to localnode:8080. In the main panel go to Mesh Status- you should be able to see the other node's radio 
  under current neighbors. 
-
-
